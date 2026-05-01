@@ -1,0 +1,22 @@
+{
+  "agents": {
+    "email_parser_agent": {
+      "id": "69ef9c74f25048c6dfe234d5",
+      "name": "Email Parser Agent",
+      "type": "independent",
+      "has_tools": true,
+      "tools": ["GMAIL_FETCH_EMAILS", "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID"]
+    },
+    "financial_insight_agent": {
+      "id": "69ef9c5def2d2451193d6964",
+      "name": "Financial Insight Agent",
+      "type": "independent",
+      "has_tools": false
+    }
+  },
+  "database": {
+    "provisioned": true,
+    "db_name": "app_33ae7ddc350892b6688a74f1",
+    "collections": ["transactions", "budgets", "categories"]
+  }
+}

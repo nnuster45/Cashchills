@@ -1,0 +1,40 @@
+{
+  "workflow": {
+    "nodes": [
+      {"id": "input_node", "type": "Input", "label": "User Input", "nodeCategory": "input"},
+      {"id": "email_parser_agent", "type": "Agent", "label": "Email Parser Agent", "nodeCategory": "agent", "agent_id": "69ef9c74f25048c6dfe234d5"},
+      {"id": "financial_insight_agent", "type": "Agent", "label": "Financial Insight Agent", "nodeCategory": "agent", "agent_id": "69ef9c5def2d2451193d6964"},
+      {"id": "output_node", "type": "Output", "label": "Output", "nodeCategory": "end"}
+    ],
+    "edges": [
+      {"source": "input_node", "target": "email_parser_agent"},
+      {"source": "input_node", "target": "financial_insight_agent"},
+      {"source": "email_parser_agent", "target": "output_node"},
+      {"source": "financial_insight_agent", "target": "output_node"}
+    ]
+  },
+  "agents": [
+    {
+      "id": "69ef9c74f25048c6dfe234d5",
+      "name": "Email Parser Agent",
+      "description": "Fetches recent emails from Gmail, identifies transaction-related messages, extracts amount, merchant, date, and auto-assigns spending category",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "temperature": 0.2,
+      "top_p": 1,
+      "tools": ["GMAIL_FETCH_EMAILS", "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID"],
+      "capabilities": ["text", "tool_calling"]
+    },
+    {
+      "id": "69ef9c5def2d2451193d6964",
+      "name": "Financial Insight Agent",
+      "description": "Analyzes stored transaction history to generate spending summaries, budget vs actual comparisons, category breakdowns, and savings recommendations",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "temperature": 0.5,
+      "top_p": 0.95,
+      "tools": [],
+      "capabilities": ["text"]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "agent_name": "Financial Insight Agent",
+  "agent_id": "69ef9c5def2d2451193d6964",
+  "description": "Analyzes stored transaction history to generate spending summaries, budget vs actual comparisons, category breakdowns, and savings recommendations",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "summary": {
+      "total_income": "number",
+      "total_expense": "number",
+      "net_savings": "number",
+      "savings_rate": "string",
+      "period": "string"
+    },
+    "category_breakdown": [
+      {
+        "category": "string",
+        "amount": "number",
+        "percentage": "string",
+        "transaction_count": "number"
+      }
+    ],
+    "budget_alerts": [
+      {
+        "category": "string",
+        "spent": "number",
+        "budget": "number",
+        "percentage_used": "string",
+        "status": "string"
+      }
+    ],
+    "trends": [
+      {
+        "observation": "string",
+        "detail": "string"
+      }
+    ],
+    "tips": [
+      {
+        "title": "string",
+        "description": "string"
+      }
+    ],
+    "overall_assessment": "string"
+  },
+  "example_response": {
+    "summary": {
+      "total_income": 0,
+      "total_expense": 0,
+      "net_savings": 0,
+      "savings_rate": "sample string",
+      "period": "sample string"
+    },
+    "category_breakdown": [
+      {
+        "category": "sample string",
+        "amount": 0,
+        "percentage": "sample string",
+        "transaction_count": 0
+      }
+    ],
+    "budget_alerts": [
+      {
+        "category": "sample string",
+        "spent": 0,
+        "budget": 0,
+        "percentage_used": "sample string",
+        "status": "sample string"
+      }
+    ],
+    "trends": [
+      {
+        "observation": "sample string",
+        "detail": "sample string"
+      }
+    ],
+    "tips": [
+      {
+        "title": "sample string",
+        "description": "sample string"
+      }
+    ],
+    "overall_assessment": "sample string"
+  }
+}

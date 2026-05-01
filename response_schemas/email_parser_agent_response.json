@@ -1,0 +1,42 @@
+{
+  "agent_name": "Email Parser Agent",
+  "agent_id": "69ef9c74f25048c6dfe234d5",
+  "description": "Fetches recent emails from Gmail, identifies transaction-related messages (bank alerts, e-receipts, payment confirmations), extracts amount, merchant, date, and auto-assigns spending category",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "transactions": [
+      {
+        "type": "string",
+        "amount": "number",
+        "category": "string",
+        "merchant": "string",
+        "date": "string",
+        "source": "string",
+        "email_subject": "string",
+        "needs_review": "boolean"
+      }
+    ],
+    "summary": "string",
+    "total_parsed": "number",
+    "total_skipped": "number"
+  },
+  "example_response": {
+    "transactions": [
+      {
+        "type": "sample string",
+        "amount": 0,
+        "category": "sample string",
+        "merchant": "sample string",
+        "date": "sample string",
+        "source": "sample string",
+        "email_subject": "sample string",
+        "needs_review": false
+      }
+    ],
+    "summary": "sample string",
+    "total_parsed": 0,
+    "total_skipped": 0
+  }
+}
