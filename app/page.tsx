@@ -1120,6 +1120,8 @@ function AppContent({
             loading={loading}
             onGoToIncome={() => setTab('income')}
             onGoToExpense={() => setTab('expense')}
+            gmailStatus={gmailStatus}
+            onConnectGmail={handleConnectGmail}
           />
         )}
         {tab === 'income' && (
