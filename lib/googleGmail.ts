@@ -432,6 +432,22 @@ function extractDate(text: string, fallbackDate: Date) {
   return fallbackDate;
 }
 
+function extractAccounts(text: string) {
+  const fromMatch = text.match(/(?:โอนเงินจากบัญชี|From Account)[\s:]*([^\n]+)/i);
+  const toMatch = text.match(/(?:เพื่อเข้าบัญชี|To Account)[\s:]*([^\n]+)/i);
+  const toNameMatch = text.match(/(?:ชื่อบัญชี|Account Name)[\s:]*([^\n]+)/i);
+
+  const parts = [];
+  if (fromMatch?.[1]) parts.push(`จากบัญชี: ${fromMatch[1].trim()}`);
+  if (toMatch?.[1]) {
+    let toText = `เข้าบัญชี: ${toMatch[1].trim()}`;
+    if (toNameMatch?.[1]) toText += ` (${toNameMatch[1].trim()})`;
+    parts.push(toText);
+  }
+
+  return parts.join('\n') || undefined;
+}
+
 export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransaction | null {
   const headers = headersToMap(message.payload?.headers);
   const subject = headers.subject || '';
@@ -456,6 +472,9 @@ export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransac
   const fallbackDate = message.internalDate ? new Date(Number(message.internalDate)) : new Date(headers.date || Date.now());
   const parsedDate = extractDate(combinedText, fallbackDate);
   const referenceNo = extractReferenceNo(combinedText);
+  
+  const accountsInfo = extractAccounts(combinedText);
+  const finalNotes = [accountsInfo, from].filter(Boolean).join('\n\n');
 
   return {
     type,
@@ -467,7 +486,7 @@ export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransac
     source_message_id: message.id,
     email_subject: subject,
     needs_review: true,
-    notes: from || undefined,
+    notes: finalNotes || undefined,
     email_html: htmlText || undefined,
     reference_no: referenceNo,
   };

@@ -7,7 +7,7 @@ async function handler(req: NextRequest, user: { id: string }) {
     const Transaction = await getTransactionModel();
 
     if (req.method === 'GET') {
-      const items = await Transaction.find({ owner_user_id: user.id }).sort({ date: -1 });
+      const items = await Transaction.find({ owner_user_id: user.id, is_deleted: { $ne: true } }).sort({ date: -1 });
       return NextResponse.json({ success: true, data: items });
     }
 
@@ -37,7 +37,7 @@ async function handler(req: NextRequest, user: { id: string }) {
       const { searchParams } = new URL(req.url);
       const id = searchParams.get('id');
       if (!id) return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
-      await Transaction.findOneAndDelete({ _id: id, owner_user_id: user.id });
+      await Transaction.findOneAndUpdate({ _id: id, owner_user_id: user.id }, { is_deleted: true });
       return NextResponse.json({ success: true, data: { deleted: id } });
     }
 

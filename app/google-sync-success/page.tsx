@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button'
 
 export default function GoogleSyncSuccessPage() {
   useEffect(() => {
-    // Try to auto-close the window or redirect
+    // Attempt to close the window automatically
     const timer = setTimeout(() => {
-      window.location.href = 'https://liff.line.me/2009948987-QpJLuq3h'
-    }, 2000)
+      window.close()
+    }, 3000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -26,17 +26,10 @@ export default function GoogleSyncSuccessPage() {
       
       <div className="flex flex-col gap-3 w-full max-w-[280px]">
         <Button 
-          onClick={() => window.location.href = 'https://liff.line.me/2009948987-QpJLuq3h'}
+          onClick={() => window.close()}
           className="w-full bg-[#06C755] hover:bg-[#05b34c] text-white h-12 rounded-xl font-bold text-base shadow-[0_4px_14px_rgba(6,199,85,0.4)]"
         >
-          กลับไปที่แอป LINE
-        </Button>
-        <Button 
-          variant="outline"
-          onClick={() => window.close()}
-          className="w-full h-12 rounded-xl font-semibold text-slate-600 border-slate-200"
-        >
-          ปิดหน้านี้
+          ปิดหน้านี้เพื่อกลับไปที่ LINE
         </Button>
       </div>
     </div>
