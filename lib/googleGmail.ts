@@ -159,7 +159,7 @@ interface GmailMessagePayload {
   mimeType?: string;
   filename?: string;
   headers?: GmailMessageHeader[];
-  body?: { data?: string; size?: number };
+  body?: { data?: string; size?: number; attachmentId?: string };
   parts?: GmailMessagePayload[];
 }
 
@@ -315,6 +315,19 @@ export async function getGmailMessage(accessToken: string, messageId: string) {
   return response.json() as Promise<GmailMessage>;
 }
 
+export async function getGmailAttachment(accessToken: string, messageId: string, attachmentId: string) {
+  const response = await fetch(`${GMAIL_MESSAGES_URL}/${messageId}/attachments/${attachmentId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gmail attachment fetch failed (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.data as string; // Base64url encoded data
+}
+
 function decodeBase64Url(data: string) {
   const normalized = data.replace(/-/g, '+').replace(/_/g, '/');
   return Buffer.from(normalized, 'base64').toString('utf-8');
@@ -448,13 +461,13 @@ function extractAccounts(text: string) {
   return parts.join('\n') || undefined;
 }
 
-export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransaction | null {
+export function parseGmailTransaction(message: GmailMessage, extraText?: string): ParsedEmailTransaction | null {
   const headers = headersToMap(message.payload?.headers);
   const subject = headers.subject || '';
   const from = headers.from || '';
   const plainText = collectText(message.payload);
   const htmlText = collectHtml(message.payload);
-  const combinedText = [subject, message.snippet || '', plainText, from].filter(Boolean).join('\n');
+  const combinedText = [subject, message.snippet || '', plainText, extraText || '', from].filter(Boolean).join('\n');
 
   if (!looksLikeTransaction(combinedText)) {
     return null;

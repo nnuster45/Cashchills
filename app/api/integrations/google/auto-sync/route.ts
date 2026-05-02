@@ -9,7 +9,27 @@ import {
   parseGmailTransaction,
   refreshGoogleAccessToken,
   buildProviderQuery,
+  getGmailAttachment,
 } from '@/lib/googleGmail';
+import pdfParse from 'pdf-parse';
+
+function findAttachments(payload: any): { attachmentId: string, filename: string, mimeType: string }[] {
+  if (!payload) return [];
+  const results = [];
+  if (payload.filename && payload.body?.attachmentId) {
+    results.push({
+      attachmentId: payload.body.attachmentId,
+      filename: payload.filename,
+      mimeType: payload.mimeType || '',
+    });
+  }
+  if (Array.isArray(payload.parts)) {
+    for (const part of payload.parts) {
+      results.push(...findAttachments(part));
+    }
+  }
+  return results;
+}
 
 async function handler(_req: NextRequest, user: { id: string }) {
   try {
@@ -76,7 +96,32 @@ async function handler(_req: NextRequest, user: { id: string }) {
 
     for (const ref of messageRefs) {
       const fullMessage = await getGmailMessage(connection.access_token, ref.id);
-      const candidate = parseGmailTransaction(fullMessage);
+      
+      let extraText = '';
+      const receiptFiles: any[] = [];
+      const attachments = findAttachments(fullMessage.payload);
+      
+      for (const att of attachments) {
+        receiptFiles.push({
+          asset_id: att.attachmentId,
+          file_name: att.filename,
+          mime_type: att.mimeType,
+        });
+
+        if (att.mimeType === 'application/pdf') {
+          try {
+            const b64Data = await getGmailAttachment(connection.access_token, fullMessage.id, att.attachmentId);
+            const normalized = b64Data.replace(/-/g, '+').replace(/_/g, '/');
+            const buffer = Buffer.from(normalized, 'base64');
+            const pdfData = await pdfParse(buffer);
+            extraText += '\n' + pdfData.text;
+          } catch (err) {
+            console.error('Failed to parse PDF', err);
+          }
+        }
+      }
+
+      const candidate = parseGmailTransaction(fullMessage, extraText);
 
       if (!candidate) continue;
       parsed += 1;
@@ -93,6 +138,7 @@ async function handler(_req: NextRequest, user: { id: string }) {
       await Transaction.create({
         ...candidate,
         owner_user_id: user.id,
+        receipt_files: receiptFiles.length > 0 ? receiptFiles : undefined,
       });
       imported += 1;
     }
