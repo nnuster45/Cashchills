@@ -133,7 +133,7 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
 
   const [searchQuery, setSearchQuery] = useState('')
   const [editTx, setEditTx] = useState<Transaction | null>(null)
-  const [editForm, setEditForm] = useState({ category: '', amount: '', notes: '', date: '' })
+  const [editForm, setEditForm] = useState({ category: '', amount: '', notes: '', date: '', merchant: '' })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null)
   const [confirmTx, setConfirmTx] = useState<Transaction | null>(null)
@@ -257,6 +257,7 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
     setEditTx(tx)
     setEditForm({
       category: tx?.category ?? '',
+      merchant: tx?.merchant ?? '',
       amount: String(tx?.amount ?? 0),
       notes: tx?.notes ?? '',
       date: tx?.date ? new Date(tx.date).toISOString().slice(0, 10) : '',
@@ -268,6 +269,7 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
     onUpdate({
       ...editTx,
       category: editForm.category,
+      merchant: editForm.merchant,
       amount: parseFloat(editForm.amount) || 0,
       notes: editForm.notes,
       date: editForm.date,
@@ -333,7 +335,7 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
             <div className="h-px bg-gray-100" />
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">แหล่งที่มา</span>
-              <Badge variant="outline" className="text-xs rounded-full px-3">{selectedTx.source === 'email' ? 'Email' : 'Manual'}</Badge>
+              <Badge variant="outline" className="text-xs rounded-full px-3">{selectedTx.source === 'email' ? getTransactionVisual(selectedTx).sourceLabel : 'Manual'}</Badge>
             </div>
             {selectedTx.email_subject && (
               <>
@@ -629,7 +631,7 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
                           <p className="mt-1 text-sm text-slate-400">{confirmTx.category || 'รอยืนยัน'}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-slate-400">{confirmTx.source === 'email' ? 'Gmail' : 'บันทึกเอง'}</p>
+                          <p className="text-sm text-slate-400 font-medium">{confirmTx.source === 'email' ? getTransactionVisual(confirmTx).sourceLabel : 'บันทึกเอง'}</p>
                           <span className="mt-1 block text-base font-extrabold text-red-500">-{formatAmount(confirmTx.amount)} THB</span>
                         </div>
                       </div>
@@ -925,6 +927,10 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
                   </SelectContent>
                 </Select>
               )}
+            </div>
+            <div>
+              <Label>หัวข้อ / ชื่อรายการ</Label>
+              <Input value={editForm.merchant} onChange={(e) => setEditForm((p) => ({ ...p, merchant: e.target.value }))} />
             </div>
             <div>
               <Label>จำนวนเงิน (THB)</Label>

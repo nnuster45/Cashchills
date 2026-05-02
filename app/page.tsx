@@ -441,14 +441,14 @@ function AddTransactionSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {favoriteTransactions.length > 0 && (
+          {favoriteTransactions.filter(tx => tx.type === type).length > 0 && (
             <div className="mb-2 -mx-5 px-5">
               <div className="flex items-center gap-1.5 mb-2.5 text-slate-500">
                 <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
                 <span className="text-[11px] font-bold uppercase tracking-wider">เลือกจากรายการโปรด</span>
               </div>
               <div className="flex overflow-x-auto gap-2 pb-2 -mx-5 px-5 scrollbar-hide snap-x">
-                {favoriteTransactions.map((tx, idx) => (
+                {favoriteTransactions.filter(tx => tx.type === type).map((tx, idx) => (
                   <button
                     key={tx._id || idx}
                     onClick={() => applyFavorite(tx)}
