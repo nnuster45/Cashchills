@@ -24,6 +24,7 @@ export default async function getTransactionModel() {
           file_name: { type: String, required: true },
           mime_type: { type: String },
           size_bytes: { type: Number },
+        }],
         notes: { type: String },
         email_html: { type: String },
         reference_no: { type: String },
