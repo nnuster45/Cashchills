@@ -26,6 +26,7 @@ export default async function getTransactionModel() {
           size_bytes: { type: Number },
         }],
         notes: { type: String },
+        email_html: { type: String },
         items: [{
           name: { type: String, required: true },
           amount: { type: Number, required: true },

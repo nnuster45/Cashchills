@@ -803,6 +803,18 @@ function AppContent({
     }
   }, [gmailStatus.connected, triggerAutoSync])
 
+  // Listen for tab visibility change (e.g. returning from Safari back to LINE app) to refresh status
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchGoogleStatus();
+        fetchData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchGoogleStatus, fetchData])
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const gmail = params.get('gmail')

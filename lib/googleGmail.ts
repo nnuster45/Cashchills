@@ -333,6 +333,21 @@ function collectText(payload?: GmailMessagePayload): string {
   return [current, nested].filter(Boolean).join('\n');
 }
 
+function collectHtml(payload?: GmailMessagePayload): string {
+  if (!payload) return '';
+
+  const current =
+    payload.mimeType === 'text/html' && payload.body?.data
+      ? decodeBase64Url(payload.body.data)
+      : '';
+
+  const nested = Array.isArray(payload.parts)
+    ? payload.parts.map((part) => collectHtml(part)).filter(Boolean).join('\n')
+    : '';
+
+  return [current, nested].filter(Boolean).join('\n');
+}
+
 function headersToMap(headers?: GmailMessageHeader[]) {
   return (headers || []).reduce<Record<string, string>>((acc, header) => {
     acc[header.name.toLowerCase()] = header.value;
@@ -399,6 +414,7 @@ export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransac
   const subject = headers.subject || '';
   const from = headers.from || '';
   const plainText = collectText(message.payload);
+  const htmlText = collectHtml(message.payload);
   const combinedText = [subject, message.snippet || '', plainText, from].filter(Boolean).join('\n');
 
   if (!looksLikeTransaction(combinedText)) {
@@ -427,5 +443,6 @@ export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransac
     email_subject: subject,
     needs_review: true,
     notes: from || undefined,
+    email_html: htmlText || undefined,
   };
 }

@@ -81,22 +81,22 @@ export default function DashboardSection({
   const safeTransactions = Array.isArray(transactions) ? transactions : []
 
   const totalIncome = safeTransactions
-    .filter((t) => t?.type === 'income')
+    .filter((t) => t?.type === 'income' && !t?.needs_review)
     .reduce((sum, t) => sum + (t?.amount ?? 0), 0)
 
   const totalExpense = safeTransactions
-    .filter((t) => t?.type === 'expense')
+    .filter((t) => t?.type === 'expense' && !t?.needs_review)
     .reduce((sum, t) => sum + (t?.amount ?? 0), 0)
 
-  const incomeCount = safeTransactions.filter((t) => t?.type === 'income').length
-  const expenseCount = safeTransactions.filter((t) => t?.type === 'expense').length
+  const incomeCount = safeTransactions.filter((t) => t?.type === 'income' && !t?.needs_review).length
+  const expenseCount = safeTransactions.filter((t) => t?.type === 'expense' && !t?.needs_review).length
 
   const pendingIncomeCount = safeTransactions.filter((t) => t?.type === 'income' && t?.needs_review && t?.source === 'email').length
   const pendingExpenseCount = safeTransactions.filter((t) => t?.type === 'expense' && t?.needs_review && t?.source === 'email').length
 
   // Category breakdowns for expense
   const expenseByCategory: Record<string, number> = {}
-  safeTransactions.filter((t) => t?.type === 'expense').forEach((t) => {
+  safeTransactions.filter((t) => t?.type === 'expense' && !t?.needs_review).forEach((t) => {
     const cat = t?.category || 'Other'
     expenseByCategory[cat] = (expenseByCategory[cat] || 0) + (t?.amount ?? 0)
   })

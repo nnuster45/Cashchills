@@ -40,6 +40,7 @@ interface Transaction {
   notes?: string
   needs_review?: boolean
   email_subject?: string
+  email_html?: string
   receipt_url?: string
   receipt_files?: ReceiptFile[]
   items?: BillItem[]
@@ -137,13 +138,14 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
   const [confirmMerchant, setConfirmMerchant] = useState('')
   const [confirmNotes, setConfirmNotes] = useState('')
   const [confirmItems, setConfirmItems] = useState<AddItemForm[]>([])
+  const [showEmailHtml, setShowEmailHtml] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showAddCatConfirm, setShowAddCatConfirm] = useState(false)
   const [showAddCatEdit, setShowAddCatEdit] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [addingCat, setAddingCat] = useState(false)
 
-  const totalExpense = expenseTx.reduce((sum, t) => sum + (t?.amount ?? 0), 0)
+  const totalExpense = confirmed.reduce((sum, t) => sum + (t?.amount ?? 0), 0)
 
   function filterBySearch(list: Transaction[]) {
     if (!searchQuery) return list
@@ -596,7 +598,7 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
       </div>
 
       {/* Confirm Detail Dialog */}
-      <Dialog open={!!confirmTx} onOpenChange={(open) => { if (!open) { setConfirmTx(null); setConfirmCategory(''); setConfirmMerchant(''); setConfirmNotes(''); setConfirmItems([]) } }}>
+      <Dialog open={!!confirmTx} onOpenChange={(open) => { if (!open) { setConfirmTx(null); setConfirmCategory(''); setConfirmMerchant(''); setConfirmNotes(''); setConfirmItems([]); setShowEmailHtml(false) } }}>
         <DialogContent className="rounded-3xl max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3">
             <DialogTitle>ยืนยันรายจ่าย</DialogTitle>
@@ -626,9 +628,31 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
                     </div>
                   </div>
                   {confirmTx.email_subject && (
-                    <div className="mt-3 flex items-center gap-1.5 rounded-xl bg-slate-50 p-3">
-                      <FiFileText className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      <p className="truncate text-[11px] text-slate-500">{confirmTx.email_subject}</p>
+                    <div className="mt-3 flex items-center justify-between gap-1.5 rounded-xl bg-slate-50 p-3">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <FiFileText className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <p className="truncate text-[11px] text-slate-500">{confirmTx.email_subject}</p>
+                      </div>
+                      {confirmTx.email_html && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 text-[11px] px-2 whitespace-nowrap text-primary hover:bg-primary/10"
+                          onClick={() => setShowEmailHtml(!showEmailHtml)}
+                        >
+                          {showEmailHtml ? 'ซ่อนอีเมล' : 'ดูเนื้อหาอีเมล'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {showEmailHtml && confirmTx.email_html && (
+                    <div className="mt-3 rounded-xl border border-slate-200 overflow-hidden bg-white">
+                      <iframe 
+                        srcDoc={confirmTx.email_html} 
+                        className="w-full h-[300px] border-0"
+                        sandbox="allow-same-origin"
+                        title="Email Content"
+                      />
                     </div>
                   )}
                 </div>
