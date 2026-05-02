@@ -899,6 +899,7 @@ function AppContent({
 
     if (isLINEBrowser) {
       try {
+        setSyncStatus('กำลังเตรียมลิงก์เชื่อมต่อ...');
         // Fetch the Google Auth URL as JSON
         const res = await fetch(`${connectUrl}&mode=json`);
         const data = await res.json();
@@ -907,18 +908,37 @@ function AppContent({
           return;
         }
 
-        // Ensure LIFF is initialized before calling openWindow
-        if (window.liff && NEXT_PUBLIC_LINE_LIFF_ID) {
-          try {
-            await window.liff.init({ liffId: NEXT_PUBLIC_LINE_LIFF_ID });
-          } catch {
-            // Already initialized - that's fine
-          }
-          window.liff.openWindow({ url: data.url, external: true });
-          setShowGoogleConsent(false);
+        setSyncStatus('กำลังโหลด LINE SDK...');
+        let liff = window.liff;
+        if (!liff) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('โหลด SDK ไม่สำเร็จ'));
+            document.head.appendChild(script);
+          });
+          liff = window.liff;
         }
-      } catch {
-        setSyncStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ Google');
+
+        // Ensure LIFF is initialized before calling openWindow
+        if (liff && NEXT_PUBLIC_LINE_LIFF_ID) {
+          setSyncStatus('กำลังเตรียมเปิดเบราว์เซอร์...');
+          try {
+            await liff.init({ liffId: NEXT_PUBLIC_LINE_LIFF_ID });
+          } catch (e: any) {
+            console.warn('LIFF Init error:', e);
+            // Ignore error, might already be initialized
+          }
+          
+          liff.openWindow({ url: data.url, external: true });
+          setShowGoogleConsent(false);
+          setSyncStatus(''); // clear status on success
+        } else {
+          setSyncStatus('ไม่พบ LINE LIFF SDK');
+        }
+      } catch (e: any) {
+        setSyncStatus(`เกิดข้อผิดพลาด: ${e.message || 'ไม่ทราบสาเหตุ'}`);
       }
     } else {
       // Desktop / normal browser - direct redirect
