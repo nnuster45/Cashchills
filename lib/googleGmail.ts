@@ -30,6 +30,10 @@ const TRANSACTION_HINTS = [
   'เงินออก',
   'สำเร็จ',
   'ชำระ',
+  'ใบเสร็จ',
+  'invoice',
+  'grab',
+  'lineman',
 ];
 
 const PROVIDER_KEYWORDS: Array<{
@@ -49,8 +53,8 @@ const PROVIDER_KEYWORDS: Array<{
   { keywords: ['bangkok bank', 'bbl'], merchant: 'Bangkok Bank', expenseCategory: 'Utilities' },
 ];
 
-const INCOME_HINTS = ['deposit', 'received', 'incoming', 'เงินเข้า', 'credited', 'payout', 'settlement', 'โอนเข้า'];
-const EXPENSE_HINTS = ['payment', 'paid', 'purchase', 'debit', 'withdraw', 'outgoing', 'เงินออก', 'โอนออก', 'charge'];
+const INCOME_HINTS = ['deposit', 'incoming', 'เงินเข้า', 'credited', 'payout', 'settlement', 'โอนเข้า', 'ยอดขาย', 'ยอดรับทั้งหมด', 'ยอดรับ', 'ยอดโอนคืน', 'sales report'];
+const EXPENSE_HINTS = ['payment', 'paid', 'purchase', 'debit', 'withdraw', 'outgoing', 'เงินออก', 'โอนออก', 'charge', 'service fee', 'tax invoice', 'ใบกำกับภาษี', 'หักค่าบริการ'];
 
 // Real email addresses used by Thai banks/platforms for transaction notifications
 export const PROVIDER_EMAIL_ADDRESSES: Record<string, string[]> = {
@@ -377,10 +381,11 @@ function normalizeAmount(value: string) {
 
 function extractAmount(text: string) {
   const patterns = [
-    /(?:thb|฿|บาท)\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
-    /([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:thb|฿|บาท)/i,
+    /(?:thb|฿|บาท|thai baht)\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
+    /([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:thb|฿|บาท|thai baht)/i,
     /amount[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
     /ยอด[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
+    /(?:grand total|total amount|ยอดสุทธิ|ยอดรวมทั้งสิ้น|จำนวนเงินรวมทั้งสิ้น)[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
   ];
 
   for (const pattern of patterns) {
