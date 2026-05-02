@@ -387,18 +387,23 @@ function normalizeAmount(value: string) {
 
 function extractAmount(text: string) {
   const patterns = [
-    /(?:thb|฿|บาท|thai baht)\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
-    /([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:thb|฿|บาท|thai baht)/i,
-    /amount[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
-    /ยอด[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
-    /(?:grand total|total amount|ยอดสุทธิ|ยอดรวมทั้งสิ้น|จำนวนเงินรวมทั้งสิ้น)[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
-    /จำนวน\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:บาท|thb)/i,
+    { r: /(?:thb|฿|บาท|thai baht)\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i, idx: 1 },
+    { r: /([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:thb|฿|บาท|thai baht)/i, idx: 1 },
+    // Grab PDF block layout where VAT appears before the actual total due to text extraction order
+    { r: /Grand Total[^\d]*([\d,.]+)[^\d]*([\d,.]+)/i, idx: 2 },
+    { r: /amount[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i, idx: 1 },
+    { r: /ยอด[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i, idx: 1 },
+    { r: /(?:grand total|total amount|ยอดสุทธิ|ยอดรวมทั้งสิ้น|จำนวนเงินรวมทั้งสิ้น)[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i, idx: 1 },
+    { r: /จำนวน\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:บาท|thb)/i, idx: 1 },
   ];
 
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match?.[1]) {
-      const amount = normalizeAmount(match[1]);
+  for (const { r, idx } of patterns) {
+    const match = text.match(r);
+    if (match?.[idx]) {
+      // Avoid matching dates as amounts (e.g. 29 from 29-03-2026)
+      if (match[0].match(/\d{2}-\d{2}-\d{4}/)) continue;
+      
+      const amount = normalizeAmount(match[idx]);
       if (amount > 0) return amount;
     }
   }
