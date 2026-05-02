@@ -257,8 +257,9 @@ function AddTransactionSheet({
   onSave: (tx: Omit<Transaction, '_id'>) => Promise<void>
   onAddCategory: (cat: Omit<CategoryItem, '_id'>) => Promise<CategoryItem | null>
   favoriteTransactions?: Transaction[]
+  defaultType?: 'income' | 'expense'
 }) {
-  const [type, setType] = useState<'expense' | 'income'>('expense')
+  const [type, setType] = useState<'expense' | 'income'>(defaultType || 'expense')
   const [category, setCategory] = useState('')
   const [merchant, setMerchant] = useState('')
   const [date, setDate] = useState('')
@@ -274,8 +275,13 @@ function AddTransactionSheet({
 
   const filteredCats = Array.isArray(categories) ? categories.filter((c) => c?.type === type) : []
 
+  // Update type when defaultType changes (e.g. switching tabs)
+  useEffect(() => {
+    if (defaultType) setType(defaultType)
+  }, [defaultType])
+
   function resetForm() {
-    setType('expense')
+    setType(defaultType || 'expense')
     setCategory('')
     setMerchant('')
     setDate(formatDateValue(new Date()))
@@ -441,12 +447,12 @@ function AddTransactionSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {favoriteTransactions.filter(tx => tx.type === type).length > 0 && (
-            <div className="mb-2 -mx-5 px-5">
-              <div className="flex items-center gap-1.5 mb-2.5 text-slate-500">
-                <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="text-[11px] font-bold uppercase tracking-wider">เลือกจากรายการโปรด</span>
-              </div>
+          <div className="mb-2 -mx-5 px-5">
+            <div className="flex items-center gap-1.5 mb-2.5 text-slate-500">
+              <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">เลือกจากรายการโปรด</span>
+            </div>
+            {favoriteTransactions.filter(tx => tx.type === type).length > 0 ? (
               <div className="flex overflow-x-auto gap-2 pb-2 -mx-5 px-5 scrollbar-hide snap-x">
                 {favoriteTransactions.filter(tx => tx.type === type).map((tx, idx) => (
                   <button
@@ -461,8 +467,12 @@ function AddTransactionSheet({
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-3 py-4 text-center">
+                <p className="text-xs text-slate-400">ยังไม่มีรายการโปรดสำหรับ{type === 'income' ? 'รายรับ' : 'รายจ่าย'}<br/>คุณสามารถติดดาว ⭐ ได้จากหน้ารายละเอียดรายการ</p>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <Button variant={type === 'expense' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => { setType('expense'); setCategory('') }} style={type === 'expense' ? { background: 'hsl(0 84% 60%)' } : undefined}>
@@ -1109,8 +1119,8 @@ function AppContent({
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, hsl(160 40% 94%) 0%, hsl(180 35% 93%) 30%, hsl(160 35% 95%) 60%, hsl(140 40% 94%) 100%)' }}>
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-2">
+    <div className="min-h-screen pb-24" style={{ background: 'linear-gradient(135deg, hsl(160 40% 94%) 0%, hsl(180 35% 93%) 30%, hsl(160 35% 95%) 60%, hsl(140 40% 94%) 100%)' }}>
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-safe-bottom">
         <div className="mb-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
@@ -1185,7 +1195,7 @@ function AppContent({
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="max-w-lg mx-auto flex">
           {tabs.map((t) => {
             const Icon = t.icon
@@ -1212,6 +1222,7 @@ function AppContent({
         onSave={handleAddTransaction}
         onAddCategory={handleAddCategory}
         favoriteTransactions={displayTx.filter(t => t.is_favorite)}
+        defaultType={tab === 'income' ? 'income' : 'expense'}
       />
 
       {/* Google Consent Dialog */}
