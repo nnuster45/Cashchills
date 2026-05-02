@@ -12,7 +12,7 @@ import {
   FiTrendingUp, FiEdit2, FiTrash2, FiLoader, FiSearch,
   FiX, FiPackage, FiPlus, FiCheck, FiCheckCircle,
   FiChevronLeft, FiChevronRight, FiMail, FiClock,
-  FiFileText, FiPaperclip, FiExternalLink,
+  FiFileText, FiPaperclip, FiExternalLink, FiStar,
 } from 'react-icons/fi'
 
 interface BillItem {
@@ -30,6 +30,8 @@ interface ReceiptFile {
 }
 
 interface Transaction {
+  is_favorite?: boolean
+
   _id?: string
   type: string
   amount: number
@@ -384,6 +386,12 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
           </div>
 
           <div className="px-6 pb-6 flex gap-3">
+            <Button variant="outline" size="sm" className={`flex-1 gap-1.5 h-11 rounded-2xl text-sm ${selectedTx.is_favorite ? 'text-amber-500 border-amber-200 bg-amber-50' : 'text-slate-500 hover:bg-slate-50'}`} onClick={() => {
+              onUpdate(selectedTx._id!, { is_favorite: !selectedTx.is_favorite })
+              setSelectedTx({ ...selectedTx, is_favorite: !selectedTx.is_favorite })
+            }}>
+              <FiStar className={`h-4 w-4 ${selectedTx.is_favorite ? 'fill-current' : ''}`} /> {selectedTx.is_favorite ? 'รายการโปรด' : 'ตั้งเป็นโปรด'}
+            </Button>
             {selectedTx.needs_review && (
               <Button size="sm" className="flex-1 gap-1.5 h-11 rounded-2xl text-sm font-semibold" style={{ background: 'hsl(160 85% 35%)' }} onClick={() => { setSelectedTx(null); openConfirmDialog(selectedTx) }}>
                 <FiCheck className="h-4 w-4" /> ยืนยัน

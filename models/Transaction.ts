@@ -29,6 +29,7 @@ export default async function getTransactionModel() {
         email_html: { type: String },
         reference_no: { type: String },
         is_deleted: { type: Boolean, default: false },
+        is_favorite: { type: Boolean, default: false },
         items: [{
           name: { type: String, required: true },
           amount: { type: Number, required: true },

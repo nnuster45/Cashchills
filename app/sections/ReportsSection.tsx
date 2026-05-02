@@ -41,6 +41,8 @@ interface InsightData {
 }
 
 interface Transaction {
+  is_favorite?: boolean
+
   _id?: string
   type: string
   amount: number

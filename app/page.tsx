@@ -53,6 +53,8 @@ export interface ReceiptFile {
 }
 
 export interface Transaction {
+  is_favorite?: boolean
+
   _id?: string
   type: string
   amount: number
@@ -243,12 +245,14 @@ function AddTransactionSheet({
   categories,
   onSave,
   onAddCategory,
+  favoriteTransactions = [],
 }: {
   open: boolean
   onClose: () => void
   categories: CategoryItem[]
   onSave: (tx: Omit<Transaction, '_id'>) => Promise<void>
   onAddCategory: (cat: Omit<CategoryItem, '_id'>) => Promise<CategoryItem | null>
+  favoriteTransactions?: Transaction[]
 }) {
   const [type, setType] = useState<'expense' | 'income'>('expense')
   const [category, setCategory] = useState('')
@@ -265,6 +269,39 @@ function AddTransactionSheet({
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const filteredCats = Array.isArray(categories) ? categories.filter((c) => c?.type === type) : []
+
+  function resetForm() {
+    setType('expense')
+    setCategory('')
+    setMerchant('')
+    setDate(formatDateValue(new Date()))
+    setNotes('')
+    setItems([{ name: '', amount: '', quantity: '1', notes: '' }])
+    setAttachedFiles([])
+  }
+
+  function applyFavorite(tx: Transaction) {
+    setType(tx.type as 'income' | 'expense')
+    setCategory(tx.category)
+    setMerchant(tx.merchant)
+    setNotes(tx.notes || '')
+    if (tx.items && tx.items.length > 0) {
+      setItems(tx.items.map(i => ({
+        name: i.name,
+        amount: String(i.amount),
+        quantity: String(i.quantity || 1),
+        notes: i.notes || ''
+      })))
+    } else {
+      setItems([{ name: tx.merchant || tx.category || 'รายการ', amount: String(tx.amount), quantity: '1', notes: '' }])
+    }
+  }
+
+  useEffect(() => {
+    if (open) {
+      resetForm()
+    }
+  }, [open])
 
   function addItem() {
     setItems((prev) => [...prev, { name: '', amount: '', quantity: '1', notes: '' }])
@@ -400,6 +437,29 @@ function AddTransactionSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {favoriteTransactions.length > 0 && (
+            <div className="mb-2 -mx-5 px-5">
+              <div className="flex items-center gap-1.5 mb-2.5 text-slate-500">
+                <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">เลือกจากรายการโปรด</span>
+              </div>
+              <div className="flex overflow-x-auto gap-2 pb-2 -mx-5 px-5 scrollbar-hide snap-x">
+                {favoriteTransactions.map((tx, idx) => (
+                  <button
+                    key={tx._id || idx}
+                    onClick={() => applyFavorite(tx)}
+                    className="snap-start shrink-0 flex flex-col justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition-all active:scale-95 min-w-[120px]"
+                  >
+                    <p className="text-xs font-bold text-slate-700 truncate w-full">{tx.merchant || tx.category || 'ไม่ระบุชื่อ'}</p>
+                    <p className={`text-[11px] font-bold mt-0.5 ${tx.type === 'income' ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {tx.type === 'income' ? '+' : '-'}{formatAmount(tx.amount)}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button variant={type === 'expense' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => { setType('expense'); setCategory('') }} style={type === 'expense' ? { background: 'hsl(0 84% 60%)' } : undefined}>
               รายจ่าย
@@ -1147,6 +1207,7 @@ function AppContent({
         categories={displayCats}
         onSave={handleAddTransaction}
         onAddCategory={handleAddCategory}
+        favoriteTransactions={displayTx.filter(t => t.is_favorite)}
       />
 
       {/* Google Consent Dialog */}
