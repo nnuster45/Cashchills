@@ -82,3 +82,14 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Force date input text to left-align (iOS centers by default) */
+input[type="date"] {
+  text-align: left !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left !important;
+}
