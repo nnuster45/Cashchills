@@ -554,7 +554,7 @@ function AddTransactionSheet({
 
           <div>
             <Label className="text-xs font-semibold text-gray-500">Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ textAlign: 'left' }} />
           </div>
 
           {type === 'income' ? (
