@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/server/auth';
 import getGoogleConnectionModel from '@/models/GoogleConnection';
 import { exchangeGoogleCode, fetchGmailProfile } from '@/lib/googleGmail';
 
-async function handler(req: NextRequest, user: { id: string }) {
+export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
+  const stateParam = url.searchParams.get('state');
   const error = url.searchParams.get('error');
-  const storedState = req.cookies.get('google_oauth_state')?.value;
-  const returnTo = req.cookies.get('google_oauth_return_to')?.value || '/';
+
+  // Decode state to extract userId and returnTo
+  let userId = '';
+  let returnTo = '/';
+  try {
+    const decoded = JSON.parse(Buffer.from(stateParam || '', 'base64url').toString());
+    userId = decoded.userId || '';
+    returnTo = decoded.returnTo || '/';
+  } catch {
+    // State decode failed
+  }
 
   const redirect = (status: string) => {
     const safePath = returnTo.startsWith('/') ? returnTo : '/';
@@ -17,12 +25,16 @@ async function handler(req: NextRequest, user: { id: string }) {
     target.searchParams.set('gmail', status);
     const response = NextResponse.redirect(target);
     response.cookies.delete('google_oauth_state');
-    response.cookies.delete('google_oauth_return_to');
     return response;
   };
 
   if (error) return redirect('error');
-  if (!code || !state || state !== storedState) return redirect('invalid-state');
+  if (!code || !stateParam || !userId) return redirect('invalid-state');
+
+  // Optionally verify state matches cookie (if same browser)
+  const storedState = req.cookies.get('google_oauth_state')?.value;
+  // Only validate cookie state if it exists (won't exist in external browser)
+  if (storedState && storedState !== stateParam) return redirect('invalid-state');
 
   const clientId = process.env.GOOGLE_CLIENT_ID || '';
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
@@ -32,12 +44,12 @@ async function handler(req: NextRequest, user: { id: string }) {
     const tokens = await exchangeGoogleCode({ code, clientId, clientSecret, redirectUri });
     const profile = await fetchGmailProfile(tokens.access_token);
     const GoogleConnection = await getGoogleConnectionModel();
-    const existing = await GoogleConnection.findOne({ owner_user_id: user.id });
+    const existing = await GoogleConnection.findOne({ owner_user_id: userId });
 
     await GoogleConnection.findOneAndUpdate(
-      { owner_user_id: user.id },
+      { owner_user_id: userId },
       {
-        owner_user_id: user.id,
+        owner_user_id: userId,
         provider: 'google',
         google_email: profile.emailAddress,
         access_token: tokens.access_token,
@@ -54,5 +66,3 @@ async function handler(req: NextRequest, user: { id: string }) {
     return redirect('error');
   }
 }
-
-export const GET = withAuth(handler);
