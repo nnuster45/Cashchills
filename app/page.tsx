@@ -1196,7 +1196,7 @@ function AppContent({
         )}
       </div>
 
-      <div className="shrink-0 z-50" style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="shrink-0 z-50" style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingBottom: '4px' }}>
         <div className="max-w-lg mx-auto flex">
           {tabs.map((t) => {
             const Icon = t.icon

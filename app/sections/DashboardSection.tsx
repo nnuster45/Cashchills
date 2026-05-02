@@ -328,6 +328,7 @@ export default function DashboardSection({
         categories: incomeCategories,
         total: totalIncome,
         onClick: onGoToIncome,
+        showDetail: false,
       })}
 
       {renderOverviewCard({
