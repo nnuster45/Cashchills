@@ -890,11 +890,12 @@ function AppContent({
     
     if (services.length === 0) return;
 
-    const returnTo = `${window.location.pathname}${window.location.search}`
-    const connectUrl = `/api/integrations/google/connect?services=${services.join(',')}&returnTo=${encodeURIComponent(returnTo)}`
-
-    // Detect LINE in-app browser via User-Agent (more reliable than liff.isInClient)
+    // Detect LINE in-app browser via User-Agent
     const isLINEBrowser = /Line\//i.test(navigator.userAgent);
+
+    // If in LINE, tell the server to redirect back to LIFF after OAuth
+    const returnTo = isLINEBrowser && LIFF_URL ? LIFF_URL : `${window.location.pathname}${window.location.search}`;
+    const connectUrl = `/api/integrations/google/connect?services=${services.join(',')}&returnTo=${encodeURIComponent(returnTo)}`;
 
     if (isLINEBrowser) {
       try {
@@ -906,37 +907,16 @@ function AppContent({
           return;
         }
 
-        const googleUrl = data.url;
-
-        // Method 1: Try liff.openWindow (requires liff.init)
-        try {
-          if (window.liff && NEXT_PUBLIC_LINE_LIFF_ID) {
-            if (!window.liff.isInClient || !window.liff.isInClient()) {
-              // LIFF not initialized yet, try to init
-              await window.liff.init({ liffId: NEXT_PUBLIC_LINE_LIFF_ID });
-            }
-            window.liff.openWindow({ url: googleUrl, external: true });
-            setShowGoogleConsent(false);
-            return;
-          }
-        } catch (e) {
-          console.warn('[GoogleConnect] liff.openWindow failed:', e);
-        }
-
-        // Method 2: Fallback - show the URL for manual copy
-        const doCopy = window.confirm(
-          'กรุณาเปิดลิงก์นี้ในเบราว์เซอร์ Safari หรือ Chrome เพื่อเชื่อมต่อ Google\n\nกด OK เพื่อคัดลอกลิงก์'
-        );
-        if (doCopy) {
+        // Ensure LIFF is initialized before calling openWindow
+        if (window.liff && NEXT_PUBLIC_LINE_LIFF_ID) {
           try {
-            await navigator.clipboard.writeText(googleUrl);
-            setSyncStatus('คัดลอกลิงก์แล้ว! กรุณาเปิดใน Safari หรือ Chrome');
+            await window.liff.init({ liffId: NEXT_PUBLIC_LINE_LIFF_ID });
           } catch {
-            // clipboard failed, try prompt
-            window.prompt('คัดลอกลิงก์นี้แล้วเปิดในเบราว์เซอร์:', googleUrl);
+            // Already initialized - that's fine
           }
+          window.liff.openWindow({ url: data.url, external: true });
+          setShowGoogleConsent(false);
         }
-        setShowGoogleConsent(false);
       } catch {
         setSyncStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ Google');
       }

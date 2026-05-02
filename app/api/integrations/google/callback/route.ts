@@ -20,10 +20,18 @@ export async function GET(req: NextRequest) {
   }
 
   const redirect = (status: string) => {
-    const safePath = returnTo.startsWith('/') ? returnTo : '/';
-    const target = new URL(`${url.origin}${safePath}`);
+    let target: URL;
+    
+    // If returnTo is a full URL (e.g. LIFF URL), redirect to it directly
+    if (returnTo.startsWith('https://')) {
+      target = new URL(returnTo);
+    } else {
+      const safePath = returnTo.startsWith('/') ? returnTo : '/';
+      target = new URL(`${url.origin}${safePath}`);
+    }
+    
     target.searchParams.set('gmail', status);
-    const response = NextResponse.redirect(target);
+    const response = NextResponse.redirect(target.toString());
     response.cookies.delete('google_oauth_state');
     return response;
   };
