@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import { AgentInterceptorProvider } from '@/components/AgentInterceptorProvider'
 import { HydrationGuard } from '@/components/HydrationGuard'
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
@@ -14,11 +13,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
   return (
     <ErrorBoundary>
-      <AgentInterceptorProvider>
-        <HydrationGuard>
-          {children}
-        </HydrationGuard>
-      </AgentInterceptorProvider>
+      <HydrationGuard>
+        {children}
+      </HydrationGuard>
     </ErrorBoundary>
   )
 }
