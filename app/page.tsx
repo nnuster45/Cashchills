@@ -250,6 +250,7 @@ function AddTransactionSheet({
   onSave,
   onAddCategory,
   favoriteTransactions = [],
+  defaultType,
 }: {
   open: boolean
   onClose: () => void
