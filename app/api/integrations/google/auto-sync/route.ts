@@ -12,6 +12,7 @@ import {
   getGmailAttachment,
 } from '@/lib/googleGmail';
 import { getOrCreateDriveFolder, uploadFileToDrive } from '@/lib/googleDrive';
+import { createGoogleSheet, appendToGoogleSheet } from '@/lib/googleSheets';
 
 function findAttachments(payload: any): { attachmentId: string, filename: string, mimeType: string }[] {
   if (!payload) return [];
@@ -102,9 +103,26 @@ async function handler(_req: NextRequest, user: { id: string }) {
       }
     }
 
+    const hasSheetsScope = connection.scope?.includes('spreadsheets');
+    const sheetsEnabled = config ? config.sheets_sync_enabled : false;
+    let sheetsFileId = config?.sheets_file_id;
+
+    if (hasSheetsScope && sheetsEnabled && !sheetsFileId) {
+      try {
+        sheetsFileId = await createGoogleSheet(connection.access_token, 'Cashchills Backup');
+        if (config) {
+          config.sheets_file_id = sheetsFileId;
+          await config.save();
+        }
+      } catch (err) {
+        console.error('Failed to init Google Sheet', err);
+      }
+    }
+
     let imported = 0;
     let duplicates = 0;
     let parsed = 0;
+    const sheetRowsToAppend: any[][] = [];
 
     for (const ref of messageRefs) {
       const fullMessage = await getGmailMessage(connection.access_token, ref.id);
@@ -188,7 +206,29 @@ async function handler(_req: NextRequest, user: { id: string }) {
         await createdTx.save();
       }
 
+      if (sheetsFileId) {
+        const d = new Date(createdTx.transaction_date);
+        const formattedDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        sheetRowsToAppend.push([
+          formattedDate,
+          createdTx.type,
+          createdTx.category || '',
+          createdTx.amount || 0,
+          createdTx.reference_no || '',
+          createdTx.merchant || createdTx.memo || '',
+          createdTx.receipt_url || ''
+        ]);
+      }
+
       imported += 1;
+    }
+
+    if (sheetsFileId && sheetRowsToAppend.length > 0) {
+      try {
+        await appendToGoogleSheet(connection.access_token, sheetsFileId, sheetRowsToAppend);
+      } catch (err) {
+        console.error('Failed to append to Google Sheet', err);
+      }
     }
 
     // Update timestamps

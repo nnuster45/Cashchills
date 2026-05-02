@@ -27,6 +27,7 @@ export default async function getEmailSyncConfigModel() {
         auto_sync_enabled: { type: Boolean, default: true },
         drive_sync_enabled: { type: Boolean, default: false },
         sheets_sync_enabled: { type: Boolean, default: false },
+        sheets_file_id: { type: String },
         last_auto_sync_at: { type: Date },
       },
       { collection: 'email_sync_configs', timestamps: true }
