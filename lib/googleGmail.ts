@@ -53,8 +53,11 @@ const PROVIDER_KEYWORDS: Array<{
   { keywords: ['bangkok bank', 'bbl'], merchant: 'Bangkok Bank', expenseCategory: 'Utilities' },
 ];
 
-const INCOME_HINTS = ['deposit', 'incoming', 'เงินเข้า', 'credited', 'payout', 'settlement', 'โอนเข้า', 'ยอดขาย', 'ยอดรับทั้งหมด', 'ยอดรับ', 'ยอดโอนคืน', 'sales report'];
-const EXPENSE_HINTS = ['payment', 'paid', 'purchase', 'debit', 'withdraw', 'outgoing', 'เงินออก', 'โอนออก', 'charge', 'service fee', 'tax invoice', 'ใบกำกับภาษี', 'หักค่าบริการ'];
+const INCOME_HINTS = ['deposit', 'incoming', 'เงินเข้า', 'credited', 'payout', 'settlement', 'โอนเข้า', 'ยอดขาย', 'ยอดรับทั้งหมด', 'ยอดรับ', 'ยอดโอนคืน', 'sales report', 'ได้รับเงิน'];
+const EXPENSE_HINTS = ['purchase', 'debit', 'withdraw', 'outgoing', 'เงินออก', 'โอนออก', 'charge', 'หักค่าบริการ'];
+
+// Merchant platform senders: emails from these are income for merchants
+const MERCHANT_PLATFORM_SENDERS = ['lmwn.com', 'grab.com', 'lineman'];
 
 // Real email addresses used by Thai banks/platforms for transaction notifications
 export const PROVIDER_EMAIL_ADDRESSES: Record<string, string[]> = {
@@ -386,6 +389,7 @@ function extractAmount(text: string) {
     /amount[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
     /ยอด[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
     /(?:grand total|total amount|ยอดสุทธิ|ยอดรวมทั้งสิ้น|จำนวนเงินรวมทั้งสิ้น)[^0-9]*([+-]?\d[\d,]*(?:\.\d{1,2})?)/i,
+    /จำนวน\s*([+-]?\d[\d,]*(?:\.\d{1,2})?)\s*(?:บาท|thb)/i,
   ];
 
   for (const pattern of patterns) {
@@ -399,8 +403,20 @@ function extractAmount(text: string) {
   return 0;
 }
 
-function inferType(text: string): 'income' | 'expense' {
+function inferType(text: string, fromEmail?: string): 'income' | 'expense' {
   const lookup = text.toLowerCase();
+  const fromLookup = (fromEmail || '').toLowerCase();
+
+  // Merchant platform emails (LINE MAN, Grab) = income for merchant users
+  const isFromMerchantPlatform = MERCHANT_PLATFORM_SENDERS.some(s => fromLookup.includes(s) || lookup.includes(s + '/'));
+  if (isFromMerchantPlatform) {
+    // Only classify as expense if it's specifically about GP/commission deduction
+    if (lookup.includes('ค่าบริการ gp') || lookup.includes('commission fee')) {
+      return 'expense';
+    }
+    return 'income';
+  }
+
   if (INCOME_HINTS.some((hint) => lookup.includes(hint))) return 'income';
   if (EXPENSE_HINTS.some((hint) => lookup.includes(hint))) return 'expense';
   return lookup.includes('payout') || lookup.includes('deposit') ? 'income' : 'expense';
@@ -430,8 +446,15 @@ function looksLikeTransaction(text: string) {
 }
 
 function extractReferenceNo(text: string) {
-  const match = text.match(/(?:เลขที่รายการ|Transaction Number|Reference No|Ref No)[\s:]*([A-Za-z0-9]+)/i);
-  return match?.[1] || undefined;
+  // Standard bank reference
+  const bankMatch = text.match(/(?:เลขที่รายการ|Transaction Number|Reference No|Ref No)[\s:]*([A-Za-z0-9]+)/i);
+  if (bankMatch?.[1]) return bankMatch[1];
+
+  // Invoice number from LINE MAN / Grab
+  const invoiceMatch = text.match(/(?:เลขที่|Invoice No|Receipt.*No\.?)\s*([A-Z]{2,4}\d{10,})/i);
+  if (invoiceMatch?.[1]) return invoiceMatch[1];
+
+  return undefined;
 }
 
 function extractDate(text: string, fallbackDate: Date) {
@@ -483,7 +506,7 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
     return null;
   }
 
-  const type = inferType(combinedText);
+  const type = inferType(combinedText, from);
   const provider = inferMerchant(combinedText);
   const merchant = provider?.merchant || (type === 'income' ? 'Bank Deposit' : 'Bank Transfer');
   const category = inferCategory(type, provider);
