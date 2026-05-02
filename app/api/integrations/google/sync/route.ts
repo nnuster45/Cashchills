@@ -84,6 +84,8 @@ async function handler(req: NextRequest, user: { id: string }) {
     for (const ref of messageRefs) {
       const fullMessage = await getGmailMessage(connection.access_token, ref.id);
       
+      let candidate = parseGmailTransaction(fullMessage);
+      
       let extraText = '';
       const receiptFiles: any[] = [];
       const attachments = findAttachments(fullMessage.payload);
@@ -95,7 +97,8 @@ async function handler(req: NextRequest, user: { id: string }) {
           mime_type: att.mimeType,
         });
 
-        if (att.mimeType === 'application/pdf') {
+        // Only download and parse PDF if we haven't found a valid transaction in the body yet
+        if (!candidate && att.mimeType === 'application/pdf') {
           try {
             // @ts-ignore
             const pdfParse = require('pdf-parse');
@@ -110,7 +113,9 @@ async function handler(req: NextRequest, user: { id: string }) {
         }
       }
 
-      const candidate = parseGmailTransaction(fullMessage, extraText);
+      if (!candidate && extraText) {
+        candidate = parseGmailTransaction(fullMessage, extraText);
+      }
 
       if (!candidate) continue;
       parsed += 1;
