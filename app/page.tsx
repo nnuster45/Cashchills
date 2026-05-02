@@ -239,6 +239,10 @@ interface AddItemForm {
 
 type DateFilterPreset = 'today' | 'thisMonth' | 'all' | 'custom'
 
+function formatAmount(amount: number) {
+  return new Intl.NumberFormat('th-TH').format(amount)
+}
+
 function AddTransactionSheet({
   open,
   onClose,
