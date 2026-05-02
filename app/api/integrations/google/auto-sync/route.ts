@@ -11,7 +11,9 @@ import {
   buildProviderQuery,
   getGmailAttachment,
 } from '@/lib/googleGmail';
-import pdfParse from 'pdf-parse';
+
+// @ts-ignore
+const pdfParse = require('pdf-parse');
 
 function findAttachments(payload: any): { attachmentId: string, filename: string, mimeType: string }[] {
   if (!payload) return [];
