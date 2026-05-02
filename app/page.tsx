@@ -726,6 +726,7 @@ function AppContent({
   const [emailSyncConfig, setEmailSyncConfig] = useState<EmailSyncConfigData | null>(null)
   const [dateFilterOpen, setDateFilterOpen] = useState(false)
   const [showGoogleConsent, setShowGoogleConsent] = useState(false)
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false)
   const [selectedGoogleServices, setSelectedGoogleServices] = useState({
     gmail: true,
     sheets: false,
@@ -902,6 +903,8 @@ function AppContent({
     
     if (services.length === 0) return;
 
+    setIsConnectingGoogle(true);
+
     // Detect LINE in-app browser via User-Agent
     const isLINEBrowser = /Line\//i.test(navigator.userAgent);
 
@@ -918,6 +921,7 @@ function AppContent({
         const data = await res.json();
         if (!data?.url) {
           setSyncStatus('ไม่สามารถสร้างลิงก์เชื่อมต่อ Google ได้');
+          setIsConnectingGoogle(false);
           return;
         }
 
@@ -952,10 +956,13 @@ function AppContent({
         }
       } catch (e: any) {
         setSyncStatus(`เกิดข้อผิดพลาด: ${e.message || 'ไม่ทราบสาเหตุ'}`);
+      } finally {
+        setIsConnectingGoogle(false);
       }
     } else {
       // Desktop / normal browser - direct redirect
       window.location.href = connectUrl;
+      // We don't need to set isConnectingGoogle to false here because the page will redirect
     }
   }
 
@@ -1253,13 +1260,21 @@ function AppContent({
             </div>
           </div>
           <div className="flex gap-2 justify-end mt-2">
-            <Button variant="outline" onClick={() => setShowGoogleConsent(false)}>ยกเลิก</Button>
+            <Button variant="outline" onClick={() => setShowGoogleConsent(false)} disabled={isConnectingGoogle}>ยกเลิก</Button>
             <Button
               onClick={confirmGoogleConnect}
-              disabled={!selectedGoogleServices.gmail && !selectedGoogleServices.sheets && !selectedGoogleServices.drive}
+              disabled={isConnectingGoogle || (!selectedGoogleServices.gmail && !selectedGoogleServices.sheets && !selectedGoogleServices.drive)}
               style={{ background: 'hsl(160 85% 35%)' }}
+              className="min-w-[120px]"
             >
-              ดำเนินการต่อ
+              {isConnectingGoogle ? (
+                <>
+                  <FiLoader className="h-4 w-4 mr-2 animate-spin" />
+                  กำลังโหลด...
+                </>
+              ) : (
+                'ดำเนินการต่อ'
+              )}
             </Button>
           </div>
         </DialogContent>
