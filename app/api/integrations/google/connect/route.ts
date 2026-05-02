@@ -27,7 +27,15 @@ async function handler(req: NextRequest, user: { id: string }) {
   });
   const state = Buffer.from(statePayload).toString('base64url');
 
-  const response = NextResponse.redirect(buildGoogleAuthUrl({ clientId, redirectUri, state, requestedServices }));
+  const googleAuthUrl = buildGoogleAuthUrl({ clientId, redirectUri, state, requestedServices });
+
+  // If mode=json, return URL as JSON (for LINE in-app browser to open externally)
+  const mode = req.nextUrl.searchParams.get('mode');
+  if (mode === 'json') {
+    return NextResponse.json({ success: true, url: googleAuthUrl });
+  }
+
+  const response = NextResponse.redirect(googleAuthUrl);
   response.cookies.set('google_oauth_state', state, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 10 * 60 });
   return response;
 }

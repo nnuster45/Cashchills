@@ -882,7 +882,7 @@ function AppContent({
     setShowGoogleConsent(true)
   }
 
-  function confirmGoogleConnect() {
+  async function confirmGoogleConnect() {
     const services = [];
     if (selectedGoogleServices.gmail) services.push('gmail');
     if (selectedGoogleServices.sheets) services.push('sheets');
@@ -893,10 +893,20 @@ function AppContent({
     const returnTo = `${window.location.pathname}${window.location.search}`
     const connectUrl = `/api/integrations/google/connect?services=${services.join(',')}&returnTo=${encodeURIComponent(returnTo)}`
 
-    // Fix Google OAuth 'disallowed_useragent' in LINE in-app browser
+    // In LINE in-app browser: fetch the Google Auth URL, then open it in external browser
     if (window.liff && window.liff.isInClient()) {
-      const fullUrl = new URL(connectUrl, window.location.href).toString();
-      window.liff.openWindow({ url: fullUrl, external: true });
+      try {
+        const res = await fetch(`${connectUrl}&mode=json`);
+        const data = await res.json();
+        if (data?.url) {
+          window.liff.openWindow({ url: data.url, external: true });
+          setShowGoogleConsent(false);
+        } else {
+          setSyncStatus('ไม่สามารถสร้างลิงก์เชื่อมต่อ Google ได้');
+        }
+      } catch {
+        setSyncStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ Google');
+      }
     } else {
       window.location.href = connectUrl;
     }
