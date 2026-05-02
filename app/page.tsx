@@ -1120,8 +1120,8 @@ function AppContent({
   ]
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: 'linear-gradient(135deg, hsl(160 40% 94%) 0%, hsl(180 35% 93%) 30%, hsl(160 35% 95%) 60%, hsl(140 40% 94%) 100%)' }}>
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-safe-bottom">
+    <div className="flex flex-col" style={{ height: '100dvh', background: 'linear-gradient(135deg, hsl(160 40% 94%) 0%, hsl(180 35% 93%) 30%, hsl(160 35% 95%) 60%, hsl(140 40% 94%) 100%)' }}>
+      <div className="flex-1 overflow-y-auto max-w-lg mx-auto w-full px-4 pt-4 pb-4">
         <div className="mb-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
@@ -1196,7 +1196,7 @@ function AppContent({
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="shrink-0 z-50" style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="max-w-lg mx-auto flex">
           {tabs.map((t) => {
             const Icon = t.icon
