@@ -237,7 +237,7 @@ export default function DashboardSection({
   }) {
     return (
       <button onClick={onClick} className="group w-full text-left">
-        <div className={`flex flex-col rounded-[12px] border border-slate-100 bg-white px-5 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.035)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_24px_rgba(15,23,42,0.055)] ${showBreakdown ? 'h-[296px]' : 'h-[210px]'}`}>
+        <div className={`flex flex-col rounded-[12px] border border-slate-100 bg-white px-5 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.035)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_24px_rgba(15,23,42,0.055)]`}>
           <div className="mb-3 flex h-5 items-start gap-3 shrink-0">
             <div className="flex items-center gap-2 text-[13px] text-slate-500">
               {pendingCount > 0 ? (
