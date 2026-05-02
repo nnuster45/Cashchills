@@ -618,16 +618,13 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
                         <div className="min-w-0">
                           <p className="truncate text-base font-extrabold text-slate-700">{confirmTx.merchant || 'Unknown'}</p>
                           <p className="mt-1 text-sm text-slate-400">{confirmTx.category || 'รอยืนยัน'}</p>
-                          {confirmTx.reference_no && (
-                            <p className="mt-1 text-[11px] text-slate-400 font-mono bg-slate-50 inline-block px-1.5 py-0.5 rounded">
-                              Ref: {confirmTx.reference_no}
-                            </p>
-                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-slate-400">{confirmTx.source === 'email' ? 'Gmail' : 'บันทึกเอง'}</p>
                           <span className="mt-1 block text-base font-extrabold text-red-500">-{formatAmount(confirmTx.amount)} THB</span>
-                          <p className="text-sm text-slate-400">{formatDate(confirmTx.date)}</p>
+                          {confirmTx.reference_no && (
+                            <p className="mt-1 text-[10px] text-slate-400 font-mono">{confirmTx.reference_no}</p>
+                          )}
                         </div>
                       </div>
                       <p className="mt-auto text-sm text-slate-500">{formatFullDate(confirmTx.date)}</p>
