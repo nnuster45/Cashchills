@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { FiHome, FiTrendingUp, FiTrendingDown, FiSettings, FiLoader, FiPlus, FiTrash2, FiX, FiPaperclip, FiFile, FiCalendar, FiChevronDown, FiMessageCircle } from 'react-icons/fi'
+import { FiHome, FiTrendingUp, FiTrendingDown, FiSettings, FiLoader, FiPlus, FiTrash2, FiX, FiPaperclip, FiFile, FiCalendar, FiChevronDown, FiMessageCircle, FiStar } from 'react-icons/fi'
 
 import DashboardSection from './sections/DashboardSection'
 import IncomeSection from './sections/IncomeSection'
