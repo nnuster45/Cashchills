@@ -12,9 +12,6 @@ import {
   getGmailAttachment,
 } from '@/lib/googleGmail';
 
-// @ts-ignore
-const pdfParse = require('pdf-parse');
-
 function findAttachments(payload: any): { attachmentId: string, filename: string, mimeType: string }[] {
   if (!payload) return [];
   const results = [];
@@ -112,6 +109,8 @@ async function handler(_req: NextRequest, user: { id: string }) {
 
         if (att.mimeType === 'application/pdf') {
           try {
+            // @ts-ignore
+            const pdfParse = require('pdf-parse');
             const b64Data = await getGmailAttachment(connection.access_token, fullMessage.id, att.attachmentId);
             const normalized = b64Data.replace(/-/g, '+').replace(/_/g, '/');
             const buffer = Buffer.from(normalized, 'base64');
