@@ -387,8 +387,9 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
 
           <div className="px-6 pb-6 flex gap-3">
             <Button variant="outline" size="sm" className={`flex-1 gap-1.5 h-11 rounded-2xl text-sm ${selectedTx.is_favorite ? 'text-amber-500 border-amber-200 bg-amber-50' : 'text-slate-500 hover:bg-slate-50'}`} onClick={() => {
-              onUpdate(selectedTx._id!, { is_favorite: !selectedTx.is_favorite })
-              setSelectedTx({ ...selectedTx, is_favorite: !selectedTx.is_favorite })
+              const updatedTx = { ...selectedTx, is_favorite: !selectedTx.is_favorite }
+              onUpdate(updatedTx)
+              setSelectedTx(updatedTx)
             }}>
               <FiStar className={`h-4 w-4 ${selectedTx.is_favorite ? 'fill-current' : ''}`} /> {selectedTx.is_favorite ? 'รายการโปรด' : 'ตั้งเป็นโปรด'}
             </Button>
