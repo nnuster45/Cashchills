@@ -93,6 +93,9 @@ export const PROVIDER_EMAIL_ADDRESSES: Record<string, string[]> = {
     'no-reply@lineman.line.me',
     'noreply@lineman.line.me',
     'no-reply@lineshopping.com',
+    'ar-linemanth@lmwn.com',
+    'noreply@lmwn.com',
+    'no-reply@lmwn.com',
   ],
   Grab: [
     'no-reply@grab.com',

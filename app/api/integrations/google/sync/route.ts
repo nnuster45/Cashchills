@@ -115,11 +115,18 @@ async function handler(req: NextRequest, user: { id: string }) {
     for (const ref of messageRefs) {
       const fullMessage = await getGmailMessage(connection.access_token, ref.id);
       
+      const msgHeaders = (fullMessage.payload?.headers || []);
+      const msgSubject = msgHeaders.find((h: any) => h.name?.toLowerCase() === 'subject')?.value || '';
+      const msgFrom = msgHeaders.find((h: any) => h.name?.toLowerCase() === 'from')?.value || '';
+      console.log(`[SYNC] Processing: "${msgSubject}" from "${msgFrom}"`);
+
       let candidate = parseGmailTransaction(fullMessage);
+      console.log(`[SYNC] Body parse result: ${candidate ? `amount=${candidate.amount}, type=${candidate.type}` : 'null'}`);
       
       let extraText = '';
       const receiptFiles: any[] = [];
       const attachments = findAttachments(fullMessage.payload);
+      console.log(`[SYNC] Attachments found: ${attachments.length}`);
       
       for (const att of attachments) {
         receiptFiles.push({
@@ -133,9 +140,11 @@ async function handler(req: NextRequest, user: { id: string }) {
         if (att.mimeType === 'application/pdf') {
           if (!candidate || driveFolderId) {
             try {
+              console.log(`[SYNC] Downloading PDF: ${att.filename}`);
               const b64Data = await getGmailAttachment(connection.access_token, fullMessage.id, att.attachmentId);
               const normalized = b64Data.replace(/-/g, '+').replace(/_/g, '/');
               const buffer = Buffer.from(normalized, 'base64');
+              console.log(`[SYNC] PDF buffer size: ${buffer.length} bytes`);
               
               if (!candidate) {
                 // @ts-ignore
@@ -143,15 +152,16 @@ async function handler(req: NextRequest, user: { id: string }) {
                 const pdfData = await pdfParse(buffer);
                 pdfDataStr = pdfData.text;
                 extraText += '\n' + pdfDataStr;
+                console.log(`[SYNC] PDF text extracted (${pdfDataStr.length} chars): "${pdfDataStr.substring(0, 200)}..."`);
               }
 
               // Upload to Google Drive if enabled
               if (driveFolderId) {
                 const uploadRes = await uploadFileToDrive(connection.access_token, b64Data, att.filename, att.mimeType, driveFolderId);
-                receiptFiles[receiptFiles.length - 1].receipt_url = uploadRes.webViewLink; // Add webViewLink to the last pushed file
+                receiptFiles[receiptFiles.length - 1].receipt_url = uploadRes.webViewLink;
               }
             } catch (err) {
-              console.error('Failed to process PDF attachment', err);
+              console.error('[SYNC] Failed to process PDF attachment', err);
             }
           }
         } else if (driveFolderId) {
@@ -161,16 +171,20 @@ async function handler(req: NextRequest, user: { id: string }) {
             const uploadRes = await uploadFileToDrive(connection.access_token, b64Data, att.filename, att.mimeType, driveFolderId);
             receiptFiles[receiptFiles.length - 1].receipt_url = uploadRes.webViewLink;
           } catch (err) {
-            console.error('Failed to upload attachment to Drive', err);
+            console.error('[SYNC] Failed to upload attachment to Drive', err);
           }
         }
       }
 
       if (!candidate && extraText) {
         candidate = parseGmailTransaction(fullMessage, extraText);
+        console.log(`[SYNC] PDF re-parse result: ${candidate ? `amount=${candidate.amount}, type=${candidate.type}` : 'null (skipped)'}`);
       }
 
-      if (!candidate) continue;
+      if (!candidate) {
+        console.log(`[SYNC] SKIPPED: no valid transaction found`);
+        continue;
+      }
       parsed += 1;
 
       const exists = await Transaction.findOne({
