@@ -28,6 +28,8 @@ async function handler(req: NextRequest, user: { id: string }) {
         custom_emails: true,
         sync_interval_hours: true,
         auto_sync_enabled: true,
+        drive_sync_enabled: true,
+        sheets_sync_enabled: true,
       };
 
       const update: Record<string, any> = {};

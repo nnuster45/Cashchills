@@ -11,6 +11,7 @@ import {
   buildProviderQuery,
   getGmailAttachment,
 } from '@/lib/googleGmail';
+import { getOrCreateDriveFolder, uploadFileToDrive } from '@/lib/googleDrive';
 
 function findAttachments(payload: any): { attachmentId: string, filename: string, mimeType: string }[] {
   if (!payload) return [];
@@ -89,6 +90,18 @@ async function handler(_req: NextRequest, user: { id: string }) {
 
     const messageRefs = await listGmailMessages(connection.access_token, providerQuery, 30);
 
+    const hasDriveScope = connection.scope?.includes('drive.file');
+    const driveEnabled = config ? config.drive_sync_enabled : false;
+    let driveFolderId: string | undefined;
+
+    if (hasDriveScope && driveEnabled) {
+      try {
+        driveFolderId = await getOrCreateDriveFolder(connection.access_token, 'Cashchills Receipts');
+      } catch (err) {
+        console.error('Failed to init Drive folder', err);
+      }
+    }
+
     let imported = 0;
     let duplicates = 0;
     let parsed = 0;
@@ -110,17 +123,39 @@ async function handler(_req: NextRequest, user: { id: string }) {
         });
 
         // Only download and parse PDF if we haven't found a valid transaction in the body yet
-        if (!candidate && att.mimeType === 'application/pdf') {
+        let pdfDataStr = '';
+        if (att.mimeType === 'application/pdf') {
+          if (!candidate || driveFolderId) {
+            try {
+              const b64Data = await getGmailAttachment(connection.access_token, fullMessage.id, att.attachmentId);
+              const normalized = b64Data.replace(/-/g, '+').replace(/_/g, '/');
+              const buffer = Buffer.from(normalized, 'base64');
+              
+              if (!candidate) {
+                // @ts-ignore
+                const pdfParse = require('pdf-parse');
+                const pdfData = await pdfParse(buffer);
+                pdfDataStr = pdfData.text;
+                extraText += '\n' + pdfDataStr;
+              }
+
+              // Upload to Google Drive if enabled
+              if (driveFolderId) {
+                const uploadRes = await uploadFileToDrive(connection.access_token, b64Data, att.filename, att.mimeType, driveFolderId);
+                receiptFiles[receiptFiles.length - 1].receipt_url = uploadRes.webViewLink; // Add webViewLink to the last pushed file
+              }
+            } catch (err) {
+              console.error('Failed to process PDF attachment', err);
+            }
+          }
+        } else if (driveFolderId) {
+          // Upload other attachments to Drive (e.g. images)
           try {
-            // @ts-ignore
-            const pdfParse = require('pdf-parse');
             const b64Data = await getGmailAttachment(connection.access_token, fullMessage.id, att.attachmentId);
-            const normalized = b64Data.replace(/-/g, '+').replace(/_/g, '/');
-            const buffer = Buffer.from(normalized, 'base64');
-            const pdfData = await pdfParse(buffer);
-            extraText += '\n' + pdfData.text;
+            const uploadRes = await uploadFileToDrive(connection.access_token, b64Data, att.filename, att.mimeType, driveFolderId);
+            receiptFiles[receiptFiles.length - 1].receipt_url = uploadRes.webViewLink;
           } catch (err) {
-            console.error('Failed to parse PDF', err);
+            console.error('Failed to upload attachment to Drive', err);
           }
         }
       }
@@ -141,11 +176,18 @@ async function handler(_req: NextRequest, user: { id: string }) {
         continue;
       }
 
-      await Transaction.create({
+      const createdTx = await Transaction.create({
         ...candidate,
         owner_user_id: user.id,
         receipt_files: receiptFiles.length > 0 ? receiptFiles : undefined,
       });
+
+      // If we uploaded a receipt, set the main receipt_url to the first one for easy access
+      if (receiptFiles.length > 0 && receiptFiles[0].receipt_url) {
+        createdTx.receipt_url = receiptFiles[0].receipt_url;
+        await createdTx.save();
+      }
+
       imported += 1;
     }
 

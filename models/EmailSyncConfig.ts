@@ -25,6 +25,8 @@ export default async function getEmailSyncConfigModel() {
         custom_emails: { type: [String], default: [] },
         sync_interval_hours: { type: Number, default: 2, min: 1, max: 24 },
         auto_sync_enabled: { type: Boolean, default: true },
+        drive_sync_enabled: { type: Boolean, default: false },
+        sheets_sync_enabled: { type: Boolean, default: false },
         last_auto_sync_at: { type: Date },
       },
       { collection: 'email_sync_configs', timestamps: true }

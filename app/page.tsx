@@ -944,6 +944,20 @@ function AppContent({
 
     setIsConnectingGoogle(true);
 
+    // Save config state before redirecting
+    try {
+      await fetch('/api/integrations/google/email-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drive_sync_enabled: selectedGoogleServices.drive,
+          sheets_sync_enabled: selectedGoogleServices.sheets,
+        })
+      });
+    } catch (e) {
+      console.error('Failed to save config', e);
+    }
+
     // Detect LINE in-app browser via User-Agent
     const isLINEBrowser = /Line\//i.test(navigator.userAgent);
 
