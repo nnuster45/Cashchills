@@ -622,11 +622,14 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
                         <div className="text-right">
                           <p className="text-sm text-slate-400">{confirmTx.source === 'email' ? 'Gmail' : 'บันทึกเอง'}</p>
                           <span className="mt-1 block text-base font-extrabold text-red-500">-{formatAmount(confirmTx.amount)} THB</span>
-                          {confirmTx.reference_no && (
-                            <p className="mt-1 text-[10px] text-slate-400 font-mono">Ref: {confirmTx.reference_no}</p>
-                          )}
                         </div>
                       </div>
+                      {confirmTx.reference_no && (
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-[11px] text-slate-400">Ref:</span>
+                          <span className="text-[11px] text-slate-500 font-mono">{confirmTx.reference_no}</span>
+                        </div>
+                      )}
                       <p className="mt-auto text-sm text-slate-500">{formatFullDate(confirmTx.date)}</p>
                     </div>
                   </div>
