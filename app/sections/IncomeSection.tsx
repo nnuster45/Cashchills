@@ -617,7 +617,7 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                           <p className="text-sm text-slate-400">{confirmTx.source === 'email' ? 'Gmail' : 'บันทึกเอง'}</p>
                           <span className="mt-1 block text-base font-extrabold text-emerald-600">+{formatAmount(confirmTx.amount)} THB</span>
                           {confirmTx.reference_no && (
-                            <p className="mt-1 text-[10px] text-slate-400 font-mono">{confirmTx.reference_no}</p>
+                            <p className="mt-1 text-[10px] text-slate-400 font-mono">Ref: {confirmTx.reference_no}</p>
                           )}
                         </div>
                       </div>
