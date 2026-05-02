@@ -23,11 +23,13 @@ export async function GET(req: NextRequest) {
     let target: URL;
     
     // If returnTo is a full URL (e.g. LIFF URL), redirect to it directly
-    if (returnTo.startsWith('https://')) {
+    if (returnTo.startsWith('http')) {
       target = new URL(returnTo);
     } else {
       const safePath = returnTo.startsWith('/') ? returnTo : '/';
-      target = new URL(`${url.origin}${safePath}`);
+      const protocol = req.headers.get('x-forwarded-proto') || 'https';
+      const host = req.headers.get('host') || url.host;
+      target = new URL(`${protocol}://${host}${safePath}`);
     }
     
     target.searchParams.set('gmail', status);
