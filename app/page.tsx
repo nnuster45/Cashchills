@@ -142,36 +142,7 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-const SAMPLE_TRANSACTIONS: Transaction[] = [
-  { type: 'income', amount: 85000, category: 'Salary', merchant: 'Acme Corp', date: '2026-04-25', source: 'manual' },
-  { type: 'income', amount: 12000, category: 'Freelance', merchant: 'Design Project', date: '2026-04-10', source: 'manual' },
-  { type: 'expense', amount: 15000, category: 'Rent', merchant: 'Condo Management', date: '2026-04-01', source: 'manual' },
-  { type: 'expense', amount: 3200, category: 'Shopping', merchant: 'Central World', date: '2026-04-20', source: 'manual', items: [{ name: 'T-Shirt', amount: 1200, quantity: 1 }, { name: 'Jeans', amount: 2000, quantity: 1 }] },
-  { type: 'expense', amount: 2500, category: 'Food & Dining', merchant: 'Siam Paragon Food Court', date: '2026-04-24', source: 'email', email_subject: 'Payment Confirmation - Siam Paragon Food Court', needs_review: false, items: [{ name: 'Pad Thai', amount: 120, quantity: 2 }, { name: 'Tom Yum Kung', amount: 180, quantity: 1 }, { name: 'Mango Sticky Rice', amount: 80, quantity: 1 }] },
-  { type: 'expense', amount: 890, category: 'Transportation', merchant: 'BTS Rabbit Card', date: '2026-04-23', source: 'email', email_subject: 'BTS Rabbit Card Top-up Receipt', needs_review: false },
-  { type: 'expense', amount: 450, category: 'Utilities', merchant: 'TRUE Internet', date: '2026-04-15', source: 'email', email_subject: 'TRUE Internet Monthly Bill - April 2026', needs_review: false },
-  { type: 'expense', amount: 1850, category: 'Food & Dining', merchant: 'KBank', date: '2026-04-27', source: 'email', email_subject: 'KBank transfer alert - Starbucks Reserve', needs_review: true, notes: 'Starbucks Reserve', items: [{ name: 'Iced Oat Latte', amount: 175, quantity: 2 }, { name: 'Banana Cake', amount: 150, quantity: 1 }, { name: 'Cold Brew Negroni', amount: 250, quantity: 1 }] },
-  { type: 'expense', amount: 4590, category: 'Shopping', merchant: 'SCB', date: '2026-04-26', source: 'email', email_subject: 'SCB outgoing transfer - Shopee Seller Services', needs_review: true, notes: 'Shopee Seller Services', items: [{ name: 'Wireless Mouse Logitech MX', amount: 2990, quantity: 1 }, { name: 'USB-C Hub 7-in-1', amount: 1600, quantity: 1 }] },
-  { type: 'expense', amount: 650, category: 'Transportation', merchant: 'KBank', date: '2026-04-27', source: 'email', email_subject: 'KBank outgoing transfer - Grab Driver Wallet', needs_review: true, notes: 'Grab Driver Wallet' },
-  { type: 'expense', amount: 1290, category: 'Food & Dining', merchant: 'KTG', date: '2026-04-26', source: 'email', email_subject: 'Krungthai transfer alert - Foodpanda Settlement', needs_review: true, notes: 'Foodpanda Settlement', items: [{ name: 'Salmon Sashimi Set', amount: 590, quantity: 1 }, { name: 'Chicken Katsu Don', amount: 350, quantity: 1 }, { name: 'Gyoza (6 pcs)', amount: 180, quantity: 1 }, { name: 'Delivery Fee', amount: 170, quantity: 1 }] },
-  { type: 'income', amount: 5500, category: 'Freelance', merchant: 'Shopee', date: '2026-04-25', source: 'email', email_subject: 'Shopee payout deposited to KBank', needs_review: true, notes: 'Platform payout' },
-]
 
-const SAMPLE_BUDGETS: Budget[] = [
-  { category: 'Food & Dining', monthly_limit: 8000, month_year: '2026-04' },
-  { category: 'Transportation', monthly_limit: 3000, month_year: '2026-04' },
-  { category: 'Shopping', monthly_limit: 5000, month_year: '2026-04' },
-]
-
-const SAMPLE_CATEGORIES: CategoryItem[] = [
-  { name: 'Salary', type: 'income', is_default: true },
-  { name: 'Freelance', type: 'income', is_default: true },
-  { name: 'Food & Dining', type: 'expense', is_default: true },
-  { name: 'Transportation', type: 'expense', is_default: true },
-  { name: 'Rent', type: 'expense', is_default: true },
-  { name: 'Shopping', type: 'expense', is_default: true },
-  { name: 'Utilities', type: 'expense', is_default: true },
-]
 
 function AuthScreen({
   onLineLogin,
@@ -721,7 +692,7 @@ function AppContent({
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncStatus, setSyncStatus] = useState('')
   const [showAddTx, setShowAddTx] = useState(false)
-  const [showSample, setShowSample] = useState(false)
+
   const [gmailStatus, setGmailStatus] = useState<GmailIntegrationStatus>({ connected: false, configured: false })
   const [emailSyncConfig, setEmailSyncConfig] = useState<EmailSyncConfigData | null>(null)
   const [dateFilterOpen, setDateFilterOpen] = useState(false)
@@ -832,22 +803,15 @@ function AppContent({
     window.history.replaceState({}, '', cleanUrl)
   }, [fetchGoogleStatus])
 
-  const isUsingSampleData = showSample && transactions.length === 0
-  const baseTx = isUsingSampleData ? SAMPLE_TRANSACTIONS : transactions
-  const displayTx = baseTx.filter((tx) => {
+  const displayTx = transactions.filter((tx) => {
     if (datePreset === 'all') return true
     const current = (tx?.date || '').slice(0, 10)
     if (!current) return false
     return current >= startDate && current <= endDate
   })
-  const displayBudgets = showSample && budgets.length === 0 ? SAMPLE_BUDGETS : budgets
-  const displayCats = showSample && categories.length === 0 ? SAMPLE_CATEGORIES : categories
+  const displayBudgets = budgets
+  const displayCats = categories
   const filterLabel = formatFilterLabel(startDate, endDate, datePreset)
-
-  useEffect(() => {
-    if (!isUsingSampleData || datePreset === 'all') return
-    applyDatePreset('all')
-  }, [isUsingSampleData])
 
   function applyDatePreset(preset: DateFilterPreset) {
     const now = new Date()
@@ -1099,15 +1063,7 @@ function AppContent({
             </div>
             <UserProfileMenu user={user} onLogout={onLogout} submitting={authSubmitting} />
           </div>
-          <div className="flex items-center justify-between rounded-[12px] border border-white/70 bg-white/75 px-3 py-2 shadow-sm backdrop-blur-sm">
-            <div className="min-w-0">
-              <Label htmlFor="sample-toggle" className="block text-[11px] font-semibold text-slate-600">ข้อมูลตัวอย่าง</Label>
-              <p className="text-[11px] text-slate-400">
-                {isUsingSampleData ? 'กำลังแสดงข้อมูลสาธิตสำหรับทดลองหน้าแอป' : 'เปิดไว้เมื่อยังไม่มีข้อมูลจริงในระบบ'}
-              </p>
-            </div>
-            <Switch id="sample-toggle" checked={showSample} onCheckedChange={setShowSample} />
-          </div>
+
         </div>
 
         {tab === 'dashboard' && (
