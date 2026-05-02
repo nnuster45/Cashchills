@@ -182,6 +182,8 @@ export interface ParsedEmailTransaction {
   email_subject: string;
   needs_review: true;
   notes?: string;
+  email_html?: string;
+  reference_no?: string;
 }
 
 export function getGoogleAuthScopes(requestedServices: string[] = ['gmail']) {
@@ -409,6 +411,27 @@ function looksLikeTransaction(text: string) {
   return TRANSACTION_HINTS.some((keyword) => lookup.includes(keyword));
 }
 
+function extractReferenceNo(text: string) {
+  const match = text.match(/(?:เลขที่รายการ|Transaction Number|Reference No|Ref No)[\s:]*([A-Za-z0-9]+)/i);
+  return match?.[1] || undefined;
+}
+
+function extractDate(text: string, fallbackDate: Date) {
+  const match = text.match(/(?:วันที่ทำรายการ|Transaction Date)[\s:]*(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)/i);
+  if (match?.[1]) {
+    // Parse DD/MM/YYYY HH:MM:SS assuming local timezone (or TH time)
+    const [datePart, timePart] = match[1].split(/\s+/);
+    const [day, month, year] = datePart.split('/');
+    if (day && month && year) {
+      // Create date string in ISO format for parsing
+      const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart || '00:00:00'}+07:00`;
+      const parsed = new Date(isoString);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+  }
+  return fallbackDate;
+}
+
 export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransaction | null {
   const headers = headersToMap(message.payload?.headers);
   const subject = headers.subject || '';
@@ -430,7 +453,9 @@ export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransac
   const provider = inferMerchant(combinedText);
   const merchant = provider?.merchant || (type === 'income' ? 'Bank Deposit' : 'Bank Transfer');
   const category = inferCategory(type, provider);
-  const parsedDate = message.internalDate ? new Date(Number(message.internalDate)) : new Date(headers.date || Date.now());
+  const fallbackDate = message.internalDate ? new Date(Number(message.internalDate)) : new Date(headers.date || Date.now());
+  const parsedDate = extractDate(combinedText, fallbackDate);
+  const referenceNo = extractReferenceNo(combinedText);
 
   return {
     type,
@@ -444,5 +469,6 @@ export function parseGmailTransaction(message: GmailMessage): ParsedEmailTransac
     needs_review: true,
     notes: from || undefined,
     email_html: htmlText || undefined,
+    reference_no: referenceNo,
   };
 }

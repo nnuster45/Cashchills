@@ -906,7 +906,8 @@ function AppContent({
     const isLINEBrowser = /Line\//i.test(navigator.userAgent);
 
     // If in LINE, tell the server to redirect back to LIFF after OAuth
-    const returnTo = isLINEBrowser && LIFF_URL ? LIFF_URL : `${window.location.pathname}${window.location.search}`;
+    // Force return to our success page which will then deep link back to LINE
+    const returnTo = isLINEBrowser ? `${window.location.origin}/google-sync-success` : `${window.location.pathname}${window.location.search}`;
     const connectUrl = `/api/integrations/google/connect?services=${services.join(',')}&returnTo=${encodeURIComponent(returnTo)}`;
 
     if (isLINEBrowser) {
