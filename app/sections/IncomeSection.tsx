@@ -545,7 +545,23 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                   <div className="text-right">
                     <p className="text-[12px] font-medium text-slate-400">{visual.sourceLabel}</p>
                     <p className="mt-1 text-[16px] font-extrabold text-emerald-600">+{formatAmount(tx?.amount ?? 0)} THB</p>
-                    <p className="text-[12px] text-slate-400">{formatDate(tx?.date ?? '')}</p>
+                    {(tx?.fee_amount || tx?.vat_amount || tx?.gross_amount) && (
+                      <div className="mt-1 w-full max-w-[120px] ml-auto rounded bg-slate-50 p-1 text-right border border-slate-100">
+                        {tx.gross_amount != null && tx.gross_amount > 0 && (
+                          <div className="flex justify-between items-center text-[9px] text-slate-500">
+                            <span>รวม</span>
+                            <span className="font-medium text-slate-600">{formatAmount(tx.gross_amount)}</span>
+                          </div>
+                        )}
+                        {tx.vat_amount != null && tx.vat_amount > 0 && (
+                          <div className="flex justify-between items-center text-[9px] text-red-400">
+                            <span>VAT</span>
+                            <span className="font-medium text-red-500">-{formatAmount(tx.vat_amount)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <p className="mt-1 text-[11px] text-slate-400">{formatDate(tx?.date ?? '')}</p>
                   </div>
                 </div>
 
@@ -615,8 +631,35 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                   <div className="flex min-h-0 flex-1 flex-col items-end text-right">
                     <p className="max-w-[132px] truncate text-[18px] font-bold text-slate-500">{visual.detailLabel}</p>
                     <p className="mt-2 text-[16px] font-extrabold text-emerald-600">+{formatAmount(tx?.amount ?? 0)} THB</p>
-                    <p className="mt-2 text-[12px] text-slate-400">{formatDate(tx?.date ?? '')}</p>
-                    <p className="mt-1 text-[12px] text-slate-400">{visual.sourceLabel}</p>
+                    
+                    {(tx?.fee_amount || tx?.vat_amount || tx?.gross_amount) && (
+                      <div className="mt-2 w-full max-w-[180px] rounded-md bg-slate-50 p-1.5 text-right space-y-0.5 border border-slate-100">
+                        {tx.gross_amount != null && tx.gross_amount > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">{tx.merchant === 'Grab' || tx.merchant === 'Lineman' && !tx.notes?.includes('ยอดขายรวม') ? 'ยอดรวมทั้งหมด' : 'ยอดขาย'}</span>
+                            <span className="font-medium text-slate-600">{formatAmount(tx.gross_amount)}</span>
+                          </div>
+                        )}
+                        {tx.fee_amount != null && tx.fee_amount > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-red-400">หัก GP</span>
+                            <span className="font-medium text-red-500">-{formatAmount(tx.fee_amount)}</span>
+                          </div>
+                        )}
+                        {tx.vat_amount != null && tx.vat_amount > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-red-400">หัก VAT</span>
+                            <span className="font-medium text-red-500">-{formatAmount(tx.vat_amount)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 flex w-full justify-end items-center gap-2">
+                      <p className="text-[12px] text-slate-400">{formatDate(tx?.date ?? '')}</p>
+                      <span className="text-[10px] text-slate-300">•</span>
+                      <p className="text-[12px] text-slate-400">{visual.sourceLabel}</p>
+                    </div>
                   </div>
                   <span className="mt-auto inline-flex items-center justify-end gap-2 text-[12px] text-slate-400">
                     ดูเพิ่มเติม
@@ -663,7 +706,29 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                           <span className="text-[11px] text-slate-500 font-mono">{confirmTx.reference_no}</span>
                         </div>
                       )}
-                      <p className="mt-auto text-sm text-slate-500">{formatFullDate(confirmTx.date)}</p>
+                      {(confirmTx.fee_amount || confirmTx.vat_amount || confirmTx.gross_amount) && (
+                        <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-2.5 space-y-1">
+                          {confirmTx.gross_amount != null && confirmTx.gross_amount > 0 && (
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-slate-500">{confirmTx.merchant === 'Grab' || confirmTx.merchant === 'Lineman' && !confirmTx.notes?.includes('ยอดขายรวม') ? 'รวมทั้งสิ้น (Grand Total)' : 'ยอดขายรวม'}</span>
+                              <span className="font-semibold text-slate-700">{formatAmount(confirmTx.gross_amount)}</span>
+                            </div>
+                          )}
+                          {confirmTx.fee_amount != null && confirmTx.fee_amount > 0 && (
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-red-400">หัก ค่าบริการ GP</span>
+                              <span className="font-semibold text-red-500">-{formatAmount(confirmTx.fee_amount)}</span>
+                            </div>
+                          )}
+                          {confirmTx.vat_amount != null && confirmTx.vat_amount > 0 && (
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-red-400">หัก VAT 7%</span>
+                              <span className="font-semibold text-red-500">-{formatAmount(confirmTx.vat_amount)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <p className="mt-auto pt-2 text-sm text-slate-500">{formatFullDate(confirmTx.date)}</p>
                     </div>
                   </div>
                   {confirmTx.email_subject && (

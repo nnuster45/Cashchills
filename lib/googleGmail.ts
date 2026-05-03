@@ -645,11 +645,9 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   const dailySales = extractDailySalesGp(combinedText);
   if (dailySales) {
     grossAmount = dailySales.totalSales;    // ยอดขายรวม
-    const preVatGP = Math.round((dailySales.gpFee * 100 / 107) * 100) / 100;
-    const vat = Math.round((dailySales.gpFee - preVatGP) * 100) / 100;
-    feeAmount = preVatGP;                   // ค่าบริการ GP (ก่อน VAT)
-    vatAmount = vat;                        // VAT 7%
+    feeAmount = dailySales.gpFee;           // ค่าบริการ GP (รวม VAT)
     finalAmount = dailySales.netAmount;     // ยอดที่ได้รับจริง = ยอดขาย - GP รวม VAT
+    vatAmount = undefined;
   }
 
   // --- Tax Invoice GP (Grab/LINE MAN ใบกำกับภาษี) ---
@@ -657,32 +655,22 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   if (!dailySales && (merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.toLowerCase().includes('tax invoice') || combinedText.toLowerCase().includes('gp fee'))) {
     const gpBreakdown = extractGpFeeBreakdown(combinedText);
     if (gpBreakdown) {
-      // For Tax Invoices (which are just receipts for the GP fee):
-      // The total invoice amount IS the GP fee + VAT.
-      // But to align with the "Gross -> Fee -> Net" model for the user's dashboard:
-      // We will pretend the Gross Amount is the invoice Grand Total.
-      // Wait, the user said "มันต้องเป็นยอดรวมหัก GP ขึ้นอันแรก ... ยอดขายจริง ที่บวกทุกค่ามาเนี่ยคือเท่าไหร่อ่ะ"
-      // This means the user wants: Gross Amount (Sales), minus GP Fee, minus VAT = Net Amount.
-      // But Tax Invoices don't contain the Total Sales! They only contain the GP Fee and VAT.
-      // If we don't know the Total Sales, we have to estimate it from the GP Fee (e.g., GP fee is ~30% of sales).
-      // The previous code had `grossAmount = gpBreakdown.grandTotal; finalAmount = gpBreakdown.preVatAmount;`. This makes "Gross" = "GP Fee + VAT". That's wrong for a sales dashboard.
-      // Let's estimate the Total Sales (Gross) assuming a 30% flat GP rate.
-      // If GP Fee (pre-vat) = 30% of Sales, then Sales = GP Fee / 0.30
-      const estimatedGrossSales = Math.round((gpBreakdown.preVatAmount / 0.30) * 100) / 100;
+      // User requested exact mapping from the PDF:
+      // Amount (ยอดหลัก) = Service Fee (Pre-VAT) e.g., 271.21
+      // VAT = VAT 7% e.g., 18.98
+      // Gross Amount = Grand Total e.g., 290.19
       
-      grossAmount = estimatedGrossSales;
-      feeAmount = gpBreakdown.preVatAmount;
+      finalAmount = gpBreakdown.preVatAmount;
       vatAmount = gpBreakdown.vatAmount;
-      // Net Amount (Amount) = Gross Sales - GP Fee - VAT
-      finalAmount = Math.round((estimatedGrossSales - gpBreakdown.preVatAmount - gpBreakdown.vatAmount) * 100) / 100;
+      grossAmount = gpBreakdown.grandTotal;
+      feeAmount = undefined; // Not a "fee on a sale", this IS the fee itself
 
       // Add a readable breakdown to notes
       const breakdown = [
-        `📊 ประมาณการยอดขายและค่าบริการ GP (จากใบกำกับภาษี):`,
-        `  ยอดขายรวม (ประมาณการ 30% GP): ${estimatedGrossSales.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-        `  หัก ค่าบริการ GP (ก่อน VAT): -${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-        `  หัก VAT 7%: -${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-        `  ยอดสุทธิ (ประมาณการ): ${finalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `📊 รายละเอียดใบกำกับภาษี:`,
+        `  มูลค่าสินค้า/บริการ (Amount): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  ภาษีมูลค่าเพิ่ม 7% (VAT): ${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  จำนวนเงินรวมทั้งสิ้น (Grand Total): ${gpBreakdown.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
       ].join('\n');
       finalNotes = [breakdown, finalNotes].filter(Boolean).join('\n\n');
     }

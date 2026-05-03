@@ -377,9 +377,17 @@ export default function DashboardSection({
                         <p className="truncate text-sm font-semibold text-slate-800">{tx?.merchant || tx?.category || '-'}</p>
                         <p className="text-xs text-slate-400">{tx?.category}</p>
                       </div>
-                      <span className={`shrink-0 text-sm font-bold ${isIncome ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {isIncome ? '+' : '-'}{formatAmount(tx?.amount ?? 0)}
-                      </span>
+                      <div className="shrink-0 text-right">
+                        <span className={`block text-sm font-bold ${isIncome ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {isIncome ? '+' : '-'}{formatAmount(tx?.amount ?? 0)}
+                        </span>
+                        {(tx?.fee_amount || tx?.vat_amount || tx?.gross_amount) && (
+                          <div className="flex justify-end gap-1.5 mt-0.5">
+                            {tx.gross_amount != null && tx.gross_amount > 0 && <span className="text-[10px] text-slate-400">ยอดรวม {formatAmount(tx.gross_amount)}</span>}
+                            {tx.vat_amount != null && tx.vat_amount > 0 && <span className="text-[10px] text-red-400">VAT {formatAmount(tx.vat_amount)}</span>}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
