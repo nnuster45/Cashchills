@@ -499,6 +499,83 @@ function extractAccounts(text: string) {
   return parts.join('\n') || undefined;
 }
 
+/**
+ * Extract GP fee breakdown from Grab / LINE MAN tax invoice text.
+ * 
+ * Both platforms have the label and value on separate lines:
+ * 
+ * Grab:
+ *   Line N:   "271.21"           (Total Amount before VAT)
+ *   Line N+1: "รวมมูลคาสินคาและบริการ"
+ *   Line N+2: "Total Amount"
+ *   ...
+ *   Line M:   "18.98"            (VAT)
+ *   Line M+1: "290.19"           (Grand Total)
+ * 
+ * LINE MAN:
+ *   Line N:   "จำนวนเงินค่าบริการ"
+ *   Line N+1: "ภาษีมูลค่าเพิ่ม"
+ *   Line N+2: "จำนวนเงินทั้งสิ้น"
+ *   Line N+3: "1,129.26"         (pre-VAT)
+ *   Line N+4: "79.05"            (VAT)
+ *   Line N+5: "1,208.31"         (Grand Total)
+ */
+function extractGpFeeBreakdown(text: string): { preVatAmount: number; vatAmount: number; grandTotal: number } | null {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const norm = (s: string) => Number(s.replace(/,/g, ''));
+  const isNumLine = (l: string) => /^[\d,]+(?:\.\d{1,2})?$/.test(l);
+
+  // Strategy: find "สรุปยอด" or "Grand Total" section and extract 3 consecutive numbers after the labels
+  
+  // --- LINE MAN pattern ---
+  // Look for "สรุปยอด" then find labels followed by 3 numbers
+  const srupIdx = lines.findIndex(l => l.includes('สรุปยอด'));
+  if (srupIdx >= 0) {
+    // Find the 3 consecutive number lines after สรุปยอด
+    const nums: number[] = [];
+    for (let i = srupIdx + 1; i < lines.length && nums.length < 3; i++) {
+      if (isNumLine(lines[i])) {
+        nums.push(norm(lines[i]));
+      }
+    }
+    if (nums.length === 3 && nums[0] > 0 && nums[2] > 0) {
+      return { preVatAmount: nums[0], vatAmount: nums[1], grandTotal: nums[2] };
+    }
+  }
+
+  // --- Grab pattern ---
+  // Look for "Grand Total" label, then find the 3 numbers that appear
+  // In Grab's layout: Total Amount value comes first, then VAT value, then Grand Total value
+  const grandIdx = lines.findIndex(l => l.includes('Grand Total'));
+  const totalAmtIdx = lines.findIndex(l => l.includes('Total Amount'));
+  if (grandIdx >= 0 && totalAmtIdx >= 0) {
+    // Collect all numeric lines between the first "Total Amount" occurrence and a few lines after "Grand Total"
+    const searchStart = Math.min(totalAmtIdx, grandIdx) - 3;  // look a few lines before
+    const searchEnd = Math.max(totalAmtIdx, grandIdx) + 5;    // look a few lines after
+    const nums: number[] = [];
+    for (let i = Math.max(0, searchStart); i < Math.min(lines.length, searchEnd); i++) {
+      if (isNumLine(lines[i])) {
+        nums.push(norm(lines[i]));
+      }
+    }
+    // We expect at least 3 numbers: [totalAmount, vat, grandTotal]
+    if (nums.length >= 3) {
+      // Last 3 numbers in the block should be: preVat, vat, grandTotal
+      const last3 = nums.slice(-3);
+      if (last3[0] > 0 && last3[2] > 0) {
+        return { preVatAmount: last3[0], vatAmount: last3[1], grandTotal: last3[2] };
+      }
+    }
+    // Fallback: if only 2 numbers (no separate VAT line)
+    if (nums.length === 2 && nums[0] > 0 && nums[1] > 0) {
+      const vat = Math.round((nums[1] - nums[0]) * 100) / 100;
+      return { preVatAmount: nums[0], vatAmount: vat, grandTotal: nums[1] };
+    }
+  }
+
+  return null;
+}
+
 export function parseGmailTransaction(message: GmailMessage, extraText?: string): ParsedEmailTransaction | null {
   const headers = headersToMap(message.payload?.headers);
   const subject = headers.subject || '';
@@ -525,18 +602,32 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   const referenceNo = extractReferenceNo(combinedText);
   
   const accountsInfo = extractAccounts(combinedText);
-  const finalNotes = [accountsInfo, from].filter(Boolean).join('\n\n');
+  let finalNotes = [accountsInfo, from].filter(Boolean).join('\n\n');
 
   let finalAmount = amount;
   let feeAmount: number | undefined = undefined;
   let grossAmount: number | undefined = undefined;
 
-  // If this is a Tax Invoice for GP from Delivery platforms, the extracted amount is the GP fee.
-  // We can estimate the Gross Sales assuming standard 30% GP + 7% VAT (Total 32.1%).
-  if ((merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.includes('tax invoice') || combinedText.includes('gp fee') || combinedText.includes('ค่าบริการ gp'))) {
-    feeAmount = amount;
-    grossAmount = Math.round((feeAmount / 0.321) * 100) / 100;
-    finalAmount = Math.round((grossAmount - feeAmount) * 100) / 100;
+  // Extract actual GP fee breakdown from Grab / LINE MAN tax invoice PDFs
+  if ((merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.toLowerCase().includes('tax invoice') || combinedText.toLowerCase().includes('gp fee'))) {
+    const gpBreakdown = extractGpFeeBreakdown(combinedText);
+    if (gpBreakdown) {
+      // amount = Grand Total (total GP fee including VAT — this is what the platform invoiced)
+      finalAmount = gpBreakdown.grandTotal;
+      // fee_amount = pre-VAT service fee (the actual GP commission before VAT)
+      feeAmount = gpBreakdown.preVatAmount;
+      // gross_amount = Grand Total (same as amount for GP invoices)
+      grossAmount = gpBreakdown.grandTotal;
+
+      // Add a readable breakdown to notes
+      const breakdown = [
+        `📊 รายละเอียดค่าบริการ GP:`,
+        `  ค่าบริการ (ก่อน VAT): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  VAT 7%: ${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  รวมทั้งสิ้น: ${gpBreakdown.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+      ].join('\n');
+      finalNotes = [breakdown, finalNotes].filter(Boolean).join('\n\n');
+    }
   }
 
   return {
