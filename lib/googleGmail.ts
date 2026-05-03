@@ -184,6 +184,8 @@ interface GmailMessage {
 export interface ParsedEmailTransaction {
   type: 'income' | 'expense';
   amount: number;
+  gross_amount?: number;
+  fee_amount?: number;
   category: string;
   merchant: string;
   date: string;
@@ -525,9 +527,23 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   const accountsInfo = extractAccounts(combinedText);
   const finalNotes = [accountsInfo, from].filter(Boolean).join('\n\n');
 
+  let finalAmount = amount;
+  let feeAmount: number | undefined = undefined;
+  let grossAmount: number | undefined = undefined;
+
+  // If this is a Tax Invoice for GP from Delivery platforms, the extracted amount is the GP fee.
+  // We can estimate the Gross Sales assuming standard 30% GP + 7% VAT (Total 32.1%).
+  if ((merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.includes('tax invoice') || combinedText.includes('gp fee') || combinedText.includes('ค่าบริการ gp'))) {
+    feeAmount = amount;
+    grossAmount = Math.round((feeAmount / 0.321) * 100) / 100;
+    finalAmount = Math.round((grossAmount - feeAmount) * 100) / 100;
+  }
+
   return {
     type,
-    amount,
+    amount: finalAmount,
+    gross_amount: grossAmount,
+    fee_amount: feeAmount,
     category,
     merchant,
     date: parsedDate.toISOString(),

@@ -11,6 +11,8 @@ export default async function getTransactionModel() {
         owner_user_id: { type: String, index: true },
         type: { type: String, enum: ['income', 'expense'], required: true },
         amount: { type: Number, required: true },
+        gross_amount: { type: Number },
+        fee_amount: { type: Number },
         category: { type: String, default: 'Uncategorized' },
         merchant: { type: String, default: '' },
         date: { type: Date, default: Date.now },

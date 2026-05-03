@@ -35,6 +35,8 @@ interface Transaction {
   _id?: string
   type: string
   amount: number
+  gross_amount?: number
+  fee_amount?: number
   category: string
   merchant: string
   date: string
@@ -328,6 +330,18 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
           </div>
 
           <div className="p-6 space-y-4">
+            {selectedTx.gross_amount && selectedTx.gross_amount > 0 && (
+              <div className="flex justify-between items-center bg-gray-50 -mx-6 px-6 py-3 border-y border-gray-100">
+                <span className="text-sm font-medium text-gray-500">ยอดขายรวม (Gross)</span>
+                <span className="text-sm font-bold text-gray-800">{formatAmount(selectedTx.gross_amount)} THB</span>
+              </div>
+            )}
+            {selectedTx.fee_amount && selectedTx.fee_amount > 0 && (
+              <div className="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 border-b border-red-100 mb-4">
+                <span className="text-sm font-medium text-red-400">หักค่าบริการ (GP Fee)</span>
+                <span className="text-sm font-bold text-red-500">-{formatAmount(selectedTx.fee_amount)} THB</span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">วันที่</span>
               <span className="text-sm font-medium text-gray-800">{formatFullDate(selectedTx.date)}</span>
