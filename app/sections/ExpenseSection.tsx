@@ -330,27 +330,23 @@ export default function ExpenseSection({ transactions, categories, onUpdate, onD
           </div>
 
           <div className="p-6 space-y-4">
-            {(selectedTx.fee_amount || selectedTx.gross_amount) && (selectedTx.fee_amount! > 0 || selectedTx.gross_amount! > 0) && (
-              <div className="rounded-xl bg-slate-50 -mx-6 px-6 py-4 border-y border-slate-100 space-y-2 mb-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">📊 รายละเอียดค่าบริการ GP</p>
-                {selectedTx.fee_amount && selectedTx.fee_amount > 0 && (
+            {selectedTx.gross_amount && selectedTx.gross_amount > 0 && (
+              <div className="rounded-xl bg-gradient-to-b from-slate-50 to-white -mx-6 px-6 py-4 border-y border-slate-100 space-y-3 mb-2">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">📊 สรุปรายได้</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-600">ยอดขายรวม</span>
+                  <span className="text-sm font-bold text-slate-800">{formatAmount(selectedTx.gross_amount)} THB</span>
+                </div>
+                {selectedTx.fee_amount != null && selectedTx.fee_amount > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">ค่าบริการ (ก่อน VAT)</span>
-                    <span className="text-sm font-semibold text-slate-700">{formatAmount(selectedTx.fee_amount)} THB</span>
+                    <span className="text-sm text-red-400">หักค่าบริการ GP</span>
+                    <span className="text-sm font-semibold text-red-500">-{formatAmount(selectedTx.fee_amount)} THB</span>
                   </div>
                 )}
-                {selectedTx.fee_amount && selectedTx.gross_amount && selectedTx.gross_amount > selectedTx.fee_amount && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">VAT 7%</span>
-                    <span className="text-sm font-semibold text-slate-700">{formatAmount(Math.round((selectedTx.gross_amount - selectedTx.fee_amount) * 100) / 100)} THB</span>
-                  </div>
-                )}
-                {selectedTx.gross_amount && selectedTx.gross_amount > 0 && (
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200">
-                    <span className="text-sm font-medium text-slate-600">รวมทั้งสิ้น (GP Fee)</span>
-                    <span className="text-sm font-bold text-red-500">{formatAmount(selectedTx.gross_amount)} THB</span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center pt-2 border-t border-dashed border-slate-200">
+                  <span className="text-sm font-semibold text-emerald-600">ยอดที่ได้รับจริง</span>
+                  <span className="text-base font-extrabold text-emerald-600">{formatAmount(selectedTx.amount)} THB</span>
+                </div>
               </div>
             )}
             <div className="flex justify-between items-center">

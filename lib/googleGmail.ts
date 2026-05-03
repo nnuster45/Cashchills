@@ -417,13 +417,9 @@ function inferType(text: string, fromEmail?: string): 'income' | 'expense' {
   const lookup = text.toLowerCase();
   const fromLookup = (fromEmail || '').toLowerCase();
 
-  // Merchant platform emails (LINE MAN, Grab) = income for merchant users
+  // Merchant platform emails (LINE MAN, Grab) = always income for merchant users
   const isFromMerchantPlatform = MERCHANT_PLATFORM_SENDERS.some(s => fromLookup.includes(s) || lookup.includes(s));
   if (isFromMerchantPlatform) {
-    // Only classify as expense if it's specifically about GP/commission deduction
-    if (lookup.includes('ค่าบริการ gp') || lookup.includes('commission fee')) {
-      return 'expense';
-    }
     return 'income';
   }
 
@@ -497,6 +493,39 @@ function extractAccounts(text: string) {
   }
 
   return parts.join('\n') || undefined;
+}
+
+/**
+ * Extract GP breakdown from LINE MAN daily sales report email body.
+ * 
+ * The email body contains lines like:
+ *   รายรับทั้งหมด ฿89.00
+ *   ยอดขาย E-Payment  89.00
+ *   ค่าบริการ GP (รวม VAT)  -28.57
+ *   ยอดเงินในระบบ  355.37
+ */
+function extractDailySalesGp(text: string): { totalSales: number; gpFee: number; netAmount: number } | null {
+  // Must be a daily sales report
+  if (!text.includes('รายงานยอดขาย') && !text.includes('ยอดขายประจำวัน')) return null;
+
+  const norm = (s: string) => Math.abs(Number(s.replace(/[^0-9.-]/g, '').replace(/,/g, '')));
+
+  // Extract total sales: "รายรับทั้งหมด" followed by amount
+  const totalMatch = text.match(/รายรับทั้งหมด[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+  // Extract GP fee: "ค่าบริการ GP" followed by negative amount
+  const gpMatch = text.match(/ค่าบริการ\s*GP[^-\d]*(-?[\d,]+(?:\.\d{1,2})?)/i);
+
+  if (totalMatch?.[1]) {
+    const totalSales = norm(totalMatch[1]);
+    const gpFee = gpMatch?.[1] ? norm(gpMatch[1]) : 0;
+    const netAmount = Math.round((totalSales - gpFee) * 100) / 100;
+
+    if (totalSales > 0) {
+      return { totalSales, gpFee, netAmount };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -608,8 +637,18 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   let feeAmount: number | undefined = undefined;
   let grossAmount: number | undefined = undefined;
 
-  // Extract actual GP fee breakdown from Grab / LINE MAN tax invoice PDFs
-  if ((merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.toLowerCase().includes('tax invoice') || combinedText.toLowerCase().includes('gp fee'))) {
+  // --- Daily Sales Report GP (LINE MAN "รายงานยอดขายรายวัน") ---
+  // The email body itself contains: รายรับทั้งหมด, ค่าบริการ GP, etc.
+  const dailySales = extractDailySalesGp(combinedText);
+  if (dailySales) {
+    grossAmount = dailySales.totalSales;    // ยอดขายรวม
+    feeAmount = dailySales.gpFee;           // ค่าบริการ GP (รวม VAT)
+    finalAmount = dailySales.netAmount;     // ยอดที่ได้รับจริง = ยอดขาย - GP
+  }
+
+  // --- Tax Invoice GP (Grab/LINE MAN ใบกำกับภาษี) ---
+  // Only apply if we didn't already get a daily sales breakdown
+  if (!dailySales && (merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.toLowerCase().includes('tax invoice') || combinedText.toLowerCase().includes('gp fee'))) {
     const gpBreakdown = extractGpFeeBreakdown(combinedText);
     if (gpBreakdown) {
       // amount = Grand Total (total GP fee including VAT — this is what the platform invoiced)
