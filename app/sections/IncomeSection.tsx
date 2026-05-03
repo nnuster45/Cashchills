@@ -634,48 +634,23 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                     
                     {(tx?.fee_amount || tx?.vat_amount || tx?.gross_amount) && (
                       <div className="mt-2 w-full max-w-[180px] rounded-md bg-slate-50 p-1.5 text-right space-y-0.5 border border-slate-100">
-                        {tx.notes?.includes('ใบกำกับภาษี') ? (
-                          <>
-                            {tx.fee_amount != null && tx.fee_amount > 0 && (
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="text-slate-400">ค่าบริการ (GP)</span>
-                                <span className="font-medium text-slate-600">{formatAmount(tx.fee_amount)}</span>
-                              </div>
-                            )}
-                            {tx.vat_amount != null && tx.vat_amount > 0 && (
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="text-slate-400">VAT 7%</span>
-                                <span className="font-medium text-slate-600">{formatAmount(tx.vat_amount)}</span>
-                              </div>
-                            )}
-                            {tx.gross_amount != null && tx.gross_amount > 0 && (
-                              <div className="flex justify-between items-center text-[10px] mt-1 pt-1 border-t border-slate-200">
-                                <span className="text-emerald-500 font-medium">รวมทั้งสิ้น</span>
-                                <span className="font-bold text-emerald-600">{formatAmount(tx.gross_amount)}</span>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {tx.gross_amount != null && tx.gross_amount > 0 && (
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="text-slate-400">ยอดขาย</span>
-                                <span className="font-medium text-slate-600">{formatAmount(tx.gross_amount)}</span>
-                              </div>
-                            )}
-                            {tx.fee_amount != null && tx.fee_amount > 0 && (
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="text-red-400">หัก GP</span>
-                                <span className="font-medium text-red-500">-{formatAmount(tx.fee_amount)}</span>
-                              </div>
-                            )}
-                            {tx.vat_amount != null && tx.vat_amount > 0 && (
-                              <div className="flex justify-between items-center text-[10px]">
-                                <span className="text-red-400">หัก VAT</span>
-                                <span className="font-medium text-red-500">-{formatAmount(tx.vat_amount)}</span>
-                              </div>
-                            )}
-                          </>
+                        {tx.gross_amount != null && tx.gross_amount > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">{tx.merchant === 'Grab' || tx.merchant === 'Lineman' && !tx.notes?.includes('ยอดขายรวม') ? 'ยอดรวมทั้งหมด' : 'ยอดขาย'}</span>
+                            <span className="font-medium text-slate-600">{formatAmount(tx.gross_amount)}</span>
+                          </div>
+                        )}
+                        {tx.fee_amount != null && tx.fee_amount > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-red-400">หัก GP</span>
+                            <span className="font-medium text-red-500">-{formatAmount(tx.fee_amount)}</span>
+                          </div>
+                        )}
+                        {tx.vat_amount != null && tx.vat_amount > 0 && (
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-red-400">หัก VAT</span>
+                            <span className="font-medium text-red-500">-{formatAmount(tx.vat_amount)}</span>
+                          </div>
                         )}
                       </div>
                     )}
@@ -733,48 +708,23 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                       )}
                       {(confirmTx.fee_amount || confirmTx.vat_amount || confirmTx.gross_amount) && (
                         <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-2.5 space-y-1">
-                          {confirmTx.notes?.includes('ใบกำกับภาษี') ? (
-                            <>
-                              {confirmTx.fee_amount != null && confirmTx.fee_amount > 0 && (
-                                <div className="flex justify-between items-center text-[11px]">
-                                  <span className="text-slate-500">ค่าบริการ (GP)</span>
-                                  <span className="font-semibold text-slate-700">{formatAmount(confirmTx.fee_amount)}</span>
-                                </div>
-                              )}
-                              {confirmTx.vat_amount != null && confirmTx.vat_amount > 0 && (
-                                <div className="flex justify-between items-center text-[11px]">
-                                  <span className="text-slate-500">VAT 7%</span>
-                                  <span className="font-semibold text-slate-700">{formatAmount(confirmTx.vat_amount)}</span>
-                                </div>
-                              )}
-                              {confirmTx.gross_amount != null && confirmTx.gross_amount > 0 && (
-                                <div className="flex justify-between items-center text-[11px] mt-1 pt-1 border-t border-slate-200">
-                                  <span className="text-emerald-500 font-medium">รวมทั้งสิ้น</span>
-                                  <span className="font-bold text-emerald-600">{formatAmount(confirmTx.gross_amount)}</span>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {confirmTx.gross_amount != null && confirmTx.gross_amount > 0 && (
-                                <div className="flex justify-between items-center text-[11px]">
-                                  <span className="text-slate-500">{confirmTx.merchant === 'Grab' || confirmTx.merchant === 'Lineman' && !confirmTx.notes?.includes('ยอดขายรวม') ? 'ยอดรวมทั้งหมด' : 'ยอดขายรวม'}</span>
-                                  <span className="font-semibold text-slate-700">{formatAmount(confirmTx.gross_amount)}</span>
-                                </div>
-                              )}
-                              {confirmTx.fee_amount != null && confirmTx.fee_amount > 0 && (
-                                <div className="flex justify-between items-center text-[11px]">
-                                  <span className="text-red-400">หัก ค่าบริการ GP</span>
-                                  <span className="font-semibold text-red-500">-{formatAmount(confirmTx.fee_amount)}</span>
-                                </div>
-                              )}
-                              {confirmTx.vat_amount != null && confirmTx.vat_amount > 0 && (
-                                <div className="flex justify-between items-center text-[11px]">
-                                  <span className="text-red-400">หัก VAT 7%</span>
-                                  <span className="font-semibold text-red-500">-{formatAmount(confirmTx.vat_amount)}</span>
-                                </div>
-                              )}
-                            </>
+                          {confirmTx.gross_amount != null && confirmTx.gross_amount > 0 && (
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-slate-500">{confirmTx.merchant === 'Grab' || confirmTx.merchant === 'Lineman' && !confirmTx.notes?.includes('ยอดขายรวม') ? 'ยอดรวมทั้งหมด' : 'ยอดขายรวม'}</span>
+                              <span className="font-semibold text-slate-700">{formatAmount(confirmTx.gross_amount)}</span>
+                            </div>
+                          )}
+                          {confirmTx.fee_amount != null && confirmTx.fee_amount > 0 && (
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-red-400">หัก ค่าบริการ GP</span>
+                              <span className="font-semibold text-red-500">-{formatAmount(confirmTx.fee_amount)}</span>
+                            </div>
+                          )}
+                          {confirmTx.vat_amount != null && confirmTx.vat_amount > 0 && (
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-red-400">หัก VAT 7%</span>
+                              <span className="font-semibold text-red-500">-{formatAmount(confirmTx.vat_amount)}</span>
+                            </div>
                           )}
                         </div>
                       )}

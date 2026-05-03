@@ -418,13 +418,9 @@ function inferType(text: string, fromEmail?: string): 'income' | 'expense' {
   const lookup = text.toLowerCase();
   const fromLookup = (fromEmail || '').toLowerCase();
 
-  // Merchant platform emails (LINE MAN, Grab)
-  // Daily Sales are income. Tax Invoices (which are for GP fees) are expenses.
+  // Merchant platform emails (LINE MAN, Grab) = always income for merchant users
   const isFromMerchantPlatform = MERCHANT_PLATFORM_SENDERS.some(s => fromLookup.includes(s) || lookup.includes(s));
   if (isFromMerchantPlatform) {
-    if (lookup.includes('ใบกำกับภาษี') || lookup.includes('tax invoice')) {
-      return 'expense';
-    }
     return 'income';
   }
 
@@ -686,21 +682,21 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
     const gpBreakdown = extractGpFeeBreakdown(combinedText);
     if (gpBreakdown) {
       // User requested exact mapping from the PDF:
-      // Amount (ยอดหลัก) = Grand Total
-      // Fee Amount = Service Fee (Pre-VAT)
-      // VAT = VAT 7%
+      // Amount (ยอดหลัก/ยอดสุทธิที่ได้รับ) = Service Fee (Pre-VAT) e.g., 1129.26
+      // Gross Amount = Grand Total e.g., 1208.31
+      // VAT = VAT 7% e.g., 79.05
       
-      finalAmount = gpBreakdown.grandTotal;
-      feeAmount = gpBreakdown.preVatAmount;
+      finalAmount = gpBreakdown.preVatAmount;
+      feeAmount = undefined; // Do not show as GP fee, just a total with VAT
       vatAmount = gpBreakdown.vatAmount;
       grossAmount = gpBreakdown.grandTotal;
 
       // Add a readable breakdown to notes
       const breakdown = [
         `📊 รายละเอียดใบกำกับภาษี:`,
-        `  ค่าบริการ (GP): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  ยอดสุทธิที่ได้รับ (Amount): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
         `  ภาษีมูลค่าเพิ่ม 7% (VAT): ${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-        `  จำนวนเงินรวมทั้งสิ้น (Grand Total): ${gpBreakdown.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  ยอดรวมทั้งหมด (Gross): ${gpBreakdown.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
       ].join('\n');
       finalNotes = [breakdown, finalNotes].filter(Boolean).join('\n\n');
     }
