@@ -148,7 +148,7 @@ async function handler(req: NextRequest, user: { id: string }) {
               
               if (!candidate) {
                 // @ts-ignore
-                const pdfParse = require('pdf-parse');
+                const pdfParse = require('pdf-parse-new');
                 const pdfData = await pdfParse(buffer);
                 pdfDataStr = pdfData.text;
                 extraText += '\n' + pdfDataStr;
