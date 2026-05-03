@@ -418,9 +418,13 @@ function inferType(text: string, fromEmail?: string): 'income' | 'expense' {
   const lookup = text.toLowerCase();
   const fromLookup = (fromEmail || '').toLowerCase();
 
-  // Merchant platform emails (LINE MAN, Grab) = always income for merchant users
+  // Merchant platform emails (LINE MAN, Grab)
+  // Daily Sales are income. Tax Invoices (which are for GP fees) are expenses.
   const isFromMerchantPlatform = MERCHANT_PLATFORM_SENDERS.some(s => fromLookup.includes(s) || lookup.includes(s));
   if (isFromMerchantPlatform) {
+    if (lookup.includes('ใบกำกับภาษี') || lookup.includes('tax invoice')) {
+      return 'expense';
+    }
     return 'income';
   }
 
@@ -682,19 +686,19 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
     const gpBreakdown = extractGpFeeBreakdown(combinedText);
     if (gpBreakdown) {
       // User requested exact mapping from the PDF:
-      // Amount (ยอดหลัก) = Service Fee (Pre-VAT) e.g., 271.21
-      // VAT = VAT 7% e.g., 18.98
-      // Gross Amount = Grand Total e.g., 290.19
+      // Amount (ยอดหลัก) = Grand Total
+      // Fee Amount = Service Fee (Pre-VAT)
+      // VAT = VAT 7%
       
-      finalAmount = gpBreakdown.preVatAmount;
+      finalAmount = gpBreakdown.grandTotal;
+      feeAmount = gpBreakdown.preVatAmount;
       vatAmount = gpBreakdown.vatAmount;
       grossAmount = gpBreakdown.grandTotal;
-      feeAmount = undefined; // Not a "fee on a sale", this IS the fee itself
 
       // Add a readable breakdown to notes
       const breakdown = [
         `📊 รายละเอียดใบกำกับภาษี:`,
-        `  มูลค่าสินค้า/บริการ (Amount): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  ค่าบริการ (GP): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
         `  ภาษีมูลค่าเพิ่ม 7% (VAT): ${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
         `  จำนวนเงินรวมทั้งสิ้น (Grand Total): ${gpBreakdown.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
       ].join('\n');
