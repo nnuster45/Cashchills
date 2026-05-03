@@ -416,7 +416,7 @@ function inferType(text: string, fromEmail?: string): 'income' | 'expense' {
   const fromLookup = (fromEmail || '').toLowerCase();
 
   // Merchant platform emails (LINE MAN, Grab) = income for merchant users
-  const isFromMerchantPlatform = MERCHANT_PLATFORM_SENDERS.some(s => fromLookup.includes(s) || lookup.includes(s + '/'));
+  const isFromMerchantPlatform = MERCHANT_PLATFORM_SENDERS.some(s => fromLookup.includes(s) || lookup.includes(s));
   if (isFromMerchantPlatform) {
     // Only classify as expense if it's specifically about GP/commission deduction
     if (lookup.includes('ค่าบริการ gp') || lookup.includes('commission fee')) {
