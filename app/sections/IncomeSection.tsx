@@ -37,6 +37,7 @@ interface Transaction {
   amount: number
   gross_amount?: number
   fee_amount?: number
+  vat_amount?: number
   category: string
   merchant: string
   date: string
@@ -334,6 +335,12 @@ export default function IncomeSection({ transactions, categories, onUpdate, onDe
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-red-400">หักค่าบริการ GP</span>
                     <span className="text-sm font-semibold text-red-500">-{formatAmount(selectedTx.fee_amount)} THB</span>
+                  </div>
+                )}
+                {selectedTx.vat_amount != null && selectedTx.vat_amount > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-red-400">หัก VAT 7%</span>
+                    <span className="text-sm font-semibold text-red-500">-{formatAmount(selectedTx.vat_amount)} THB</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-dashed border-slate-200">

@@ -17,6 +17,9 @@ interface Transaction {
   _id?: string
   type: string
   amount: number
+  gross_amount?: number
+  fee_amount?: number
+  vat_amount?: number
   category: string
   merchant: string
   date: string

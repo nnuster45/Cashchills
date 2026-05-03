@@ -186,6 +186,7 @@ export interface ParsedEmailTransaction {
   amount: number;
   gross_amount?: number;
   fee_amount?: number;
+  vat_amount?: number;
   category: string;
   merchant: string;
   date: string;
@@ -637,13 +638,18 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   let feeAmount: number | undefined = undefined;
   let grossAmount: number | undefined = undefined;
 
+  let vatAmount: number | undefined = undefined;
+
   // --- Daily Sales Report GP (LINE MAN "รายงานยอดขายรายวัน") ---
   // The email body itself contains: รายรับทั้งหมด, ค่าบริการ GP, etc.
   const dailySales = extractDailySalesGp(combinedText);
   if (dailySales) {
     grossAmount = dailySales.totalSales;    // ยอดขายรวม
-    feeAmount = dailySales.gpFee;           // ค่าบริการ GP (รวม VAT)
-    finalAmount = dailySales.netAmount;     // ยอดที่ได้รับจริง = ยอดขาย - GP
+    const preVatGP = Math.round((dailySales.gpFee * 100 / 107) * 100) / 100;
+    const vat = Math.round((dailySales.gpFee - preVatGP) * 100) / 100;
+    feeAmount = preVatGP;                   // ค่าบริการ GP (ก่อน VAT)
+    vatAmount = vat;                        // VAT 7%
+    finalAmount = dailySales.netAmount;     // ยอดที่ได้รับจริง = ยอดขาย - GP รวม VAT
   }
 
   // --- Tax Invoice GP (Grab/LINE MAN ใบกำกับภาษี) ---
@@ -651,19 +657,32 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
   if (!dailySales && (merchant === 'Grab' || merchant === 'Lineman') && (combinedText.includes('ใบกำกับภาษี') || combinedText.toLowerCase().includes('tax invoice') || combinedText.toLowerCase().includes('gp fee'))) {
     const gpBreakdown = extractGpFeeBreakdown(combinedText);
     if (gpBreakdown) {
-      // amount = Grand Total (total GP fee including VAT — this is what the platform invoiced)
-      finalAmount = gpBreakdown.grandTotal;
-      // fee_amount = pre-VAT service fee (the actual GP commission before VAT)
+      // For Tax Invoices (which are just receipts for the GP fee):
+      // The total invoice amount IS the GP fee + VAT.
+      // But to align with the "Gross -> Fee -> Net" model for the user's dashboard:
+      // We will pretend the Gross Amount is the invoice Grand Total.
+      // Wait, the user said "มันต้องเป็นยอดรวมหัก GP ขึ้นอันแรก ... ยอดขายจริง ที่บวกทุกค่ามาเนี่ยคือเท่าไหร่อ่ะ"
+      // This means the user wants: Gross Amount (Sales), minus GP Fee, minus VAT = Net Amount.
+      // But Tax Invoices don't contain the Total Sales! They only contain the GP Fee and VAT.
+      // If we don't know the Total Sales, we have to estimate it from the GP Fee (e.g., GP fee is ~30% of sales).
+      // The previous code had `grossAmount = gpBreakdown.grandTotal; finalAmount = gpBreakdown.preVatAmount;`. This makes "Gross" = "GP Fee + VAT". That's wrong for a sales dashboard.
+      // Let's estimate the Total Sales (Gross) assuming a 30% flat GP rate.
+      // If GP Fee (pre-vat) = 30% of Sales, then Sales = GP Fee / 0.30
+      const estimatedGrossSales = Math.round((gpBreakdown.preVatAmount / 0.30) * 100) / 100;
+      
+      grossAmount = estimatedGrossSales;
       feeAmount = gpBreakdown.preVatAmount;
-      // gross_amount = Grand Total (same as amount for GP invoices)
-      grossAmount = gpBreakdown.grandTotal;
+      vatAmount = gpBreakdown.vatAmount;
+      // Net Amount (Amount) = Gross Sales - GP Fee - VAT
+      finalAmount = Math.round((estimatedGrossSales - gpBreakdown.preVatAmount - gpBreakdown.vatAmount) * 100) / 100;
 
       // Add a readable breakdown to notes
       const breakdown = [
-        `📊 รายละเอียดค่าบริการ GP:`,
-        `  ค่าบริการ (ก่อน VAT): ${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-        `  VAT 7%: ${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-        `  รวมทั้งสิ้น: ${gpBreakdown.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `📊 ประมาณการยอดขายและค่าบริการ GP (จากใบกำกับภาษี):`,
+        `  ยอดขายรวม (ประมาณการ 30% GP): ${estimatedGrossSales.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  หัก ค่าบริการ GP (ก่อน VAT): -${gpBreakdown.preVatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  หัก VAT 7%: -${gpBreakdown.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        `  ยอดสุทธิ (ประมาณการ): ${finalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
       ].join('\n');
       finalNotes = [breakdown, finalNotes].filter(Boolean).join('\n\n');
     }
@@ -674,6 +693,7 @@ export function parseGmailTransaction(message: GmailMessage, extraText?: string)
     amount: finalAmount,
     gross_amount: grossAmount,
     fee_amount: feeAmount,
+    vat_amount: vatAmount,
     category,
     merchant,
     date: parsedDate.toISOString(),
