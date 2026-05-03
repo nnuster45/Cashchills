@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdfParse from 'pdf-parse';
 import { withAuth } from '@/lib/server/auth';
 import getGoogleConnectionModel from '@/models/GoogleConnection';
 import getEmailSyncConfigModel from '@/models/EmailSyncConfig';
@@ -151,6 +150,8 @@ async function handler(_req: NextRequest, user: { id: string }) {
               const buffer = Buffer.from(normalized, 'base64');
               
               if (!candidate) {
+                // @ts-ignore
+                const pdfParse = require('pdf-parse');
                 const pdfData = await pdfParse(buffer);
                 pdfDataStr = pdfData.text;
                 extraText += '\n' + pdfDataStr;
