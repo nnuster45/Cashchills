@@ -558,7 +558,20 @@ function extractGpFeeBreakdown(text: string): { preVatAmount: number; vatAmount:
   // Strategy: find "สรุปยอด" or "Grand Total" section and extract 3 consecutive numbers after the labels
   
   // --- LINE MAN pattern ---
-  // Look for "สรุปยอด" then find labels followed by 3 numbers
+  // Look for labels and extract numbers on the same line or next line
+  const lmPreVatMatch = text.match(/จำนวนเงินค่าบริการ[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+  const lmVatMatch = text.match(/ภาษีมูลค่าเพิ่ม[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+  const lmGrandMatch = text.match(/จำนวนเงินทั้งสิ้น[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+
+  if (lmPreVatMatch?.[1] && lmVatMatch?.[1] && lmGrandMatch?.[1]) {
+    return {
+      preVatAmount: norm(lmPreVatMatch[1]),
+      vatAmount: norm(lmVatMatch[1]),
+      grandTotal: norm(lmGrandMatch[1])
+    };
+  }
+
+  // Fallback LINE MAN pattern: look for "สรุปยอด" then find 3 numbers
   const srupIdx = lines.findIndex(l => l.includes('สรุปยอด'));
   if (srupIdx >= 0) {
     // Find the 3 consecutive number lines after สรุปยอด
@@ -574,7 +587,20 @@ function extractGpFeeBreakdown(text: string): { preVatAmount: number; vatAmount:
   }
 
   // --- Grab pattern ---
-  // Look for "Grand Total" label, then find the 3 numbers that appear
+  // Look for labels and extract numbers
+  const gbPreVatMatch = text.match(/Total\s*Amount[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+  const gbVatMatch = text.match(/VAT\s*7\s*%[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+  const gbGrandMatch = text.match(/Grand\s*Total[^\d]*([\d,]+(?:\.\d{1,2})?)/i);
+
+  if (gbPreVatMatch?.[1] && gbVatMatch?.[1] && gbGrandMatch?.[1]) {
+    return {
+      preVatAmount: norm(gbPreVatMatch[1]),
+      vatAmount: norm(gbVatMatch[1]),
+      grandTotal: norm(gbGrandMatch[1])
+    };
+  }
+
+  // Fallback Grab pattern: Look for "Grand Total" label, then find the 3 numbers that appear
   // In Grab's layout: Total Amount value comes first, then VAT value, then Grand Total value
   const grandIdx = lines.findIndex(l => l.includes('Grand Total'));
   const totalAmtIdx = lines.findIndex(l => l.includes('Total Amount'));
